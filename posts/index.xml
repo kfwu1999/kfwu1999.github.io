@@ -2,18 +2,26 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>Posts on kfwu&#39;s blog</title>
-    <link>https://kfwu1999.github.io/posts/</link>
+    <link>http://localhost:1313/posts/</link>
     <description>Recent content in Posts on kfwu&#39;s blog</description>
     <generator>Hugo -- 0.124.1</generator>
     <language>en-us</language>
-    <lastBuildDate>Tue, 03 Sep 2024 10:45:06 +0800</lastBuildDate>
-    <atom:link href="https://kfwu1999.github.io/posts/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Tue, 03 Sep 2024 10:53:15 +0800</lastBuildDate>
+    <atom:link href="http://localhost:1313/posts/index.xml" rel="self" type="application/rss+xml" />
     <item>
-      <title>My First Post</title>
-      <link>https://kfwu1999.github.io/posts/my-first-post/</link>
-      <pubDate>Tue, 03 Sep 2024 10:45:06 +0800</pubDate>
-      <guid>https://kfwu1999.github.io/posts/my-first-post/</guid>
-      <description></description>
+      <title>C&#43;&#43; 學習筆記 - unique_ptr</title>
+      <link>http://localhost:1313/posts/cpp/unique_ptr/</link>
+      <pubDate>Tue, 03 Sep 2024 10:53:15 +0800</pubDate>
+      <guid>http://localhost:1313/posts/cpp/unique_ptr/</guid>
+      <description>總覽 在 C++ 中，std::unique_ptr 是一種很常用的智能指標 (Smart Pointer)，其主要目的是自動管理動態記憶體，避免記憶體流失 (Memory Leak)。
+在本篇筆記中，我會先由記憶體流失及智能指標 (Smart Pointer) 開始簡介，再逐步介紹 unique_ptr 的基本概念、用法、及簡易實作。
+前言 記憶體流失簡介 如果要用一句話簡介記憶體流失 (Memory Leak) 的話，可以說：「當一個程式中分配的動態記憶體，在使用完畢後並未將其釋放，則會造成記憶體流失，減少可使用的主記憶體容量」。
+如以下範例所示：
+void func_with_memory_leak() { int* ptr = new int; } 在 func_with_memory_leak() 這個函式中，此函式分配了一塊記憶體，並用 ptr 指向這塊記憶體。當此函式結束後，分配的這個記憶體尚未進行釋放，由於 ptr 這個指標變數的生命週期結束了，導致沒有變數指向這塊已經分配好的記憶體，所以此塊記憶體在整個程式運行期間就沒有辦法進行釋放。
+如果只有一小塊記憶體流失的話對整個程式的影響不大，但如果這類函式是放在迴圈當中 (如下列程式碼所示)，或者是需要常常被呼叫的函式中，就很有可能因主記憶體的容量不夠，進而降低電腦的效能。
+while (some_condition()) { func_with_memory_leak(); } 因此，若是分配出來的動態記憶體，在生命週期結束後，都要記得進行釋放，如下列程式碼所示：
+void func_without_memory_leak() { int* ptr = new int; // ... delete ptr; } 另外，使用 exception 時也會造成記憶體流失的風險。如下列程式碼所示，當例外情況發生時，如果在記憶體釋放前拋出了例外，則記憶體可能會無法正常釋放，導致記憶體流失。
+void func_with_potential_leak() { int* ptr = new int; if (some_condition()) throw std::runtime_error(&amp;#34;An error occurred, the memory hasn&amp;#39;t freed&amp;#34;); delete ptr; } 因此，會需要在例外部分釋放記憶體，如下所示：</description>
     </item>
   </channel>
 </rss>
