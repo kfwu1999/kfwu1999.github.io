@@ -2,17 +2,17 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>kfwu&#39;s blog</title>
-    <link>http://localhost:1313/</link>
+    <link>https://kfwu1999.github.io/</link>
     <description>Recent content on kfwu&#39;s blog</description>
     <generator>Hugo -- 0.124.1</generator>
     <language>en-us</language>
     <lastBuildDate>Tue, 03 Sep 2024 10:53:15 +0800</lastBuildDate>
-    <atom:link href="http://localhost:1313/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="https://kfwu1999.github.io/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>C&#43;&#43; 學習筆記 - unique_ptr</title>
-      <link>http://localhost:1313/posts/cpp/unique_ptr/</link>
+      <link>https://kfwu1999.github.io/posts/cpp/unique_ptr/</link>
       <pubDate>Tue, 03 Sep 2024 10:53:15 +0800</pubDate>
-      <guid>http://localhost:1313/posts/cpp/unique_ptr/</guid>
+      <guid>https://kfwu1999.github.io/posts/cpp/unique_ptr/</guid>
       <description>總覽 在 C++ 中，std::unique_ptr 是一種很常用的智能指標 (Smart Pointer)，其主要目的是自動管理動態記憶體，避免記憶體流失 (Memory Leak)。
 在本篇筆記中，我會先由記憶體流失及智能指標 (Smart Pointer) 開始簡介，再逐步介紹 unique_ptr 的基本概念、用法、及簡易實作。
 前言 記憶體流失簡介 如果要用一句話簡介記憶體流失 (Memory Leak) 的話，可以說：「當一個程式中分配的動態記憶體，在使用完畢後並未將其釋放，則會造成記憶體流失，減少可使用的主記憶體容量」。
