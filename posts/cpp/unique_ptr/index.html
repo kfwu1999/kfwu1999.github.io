@@ -1,32 +1,31 @@
 <!DOCTYPE html>
 <html lang="en" dir="auto">
 
-<head><meta charset="utf-8">
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<meta name="robots" content="index, follow">
-<title>C&#43;&#43; 學習筆記 - unique_ptr | kfwu&#39;s blog</title>
-<meta name="keywords" content="">
-<meta name="description" content="總覽 在 C&#43;&#43; 中，std::unique_ptr 是一種很常用的智能指標 (Smart Pointer)，其主要目的是自動管理動態記憶體，避免記憶體流失 (Memory Leak)。
-在本篇筆記中，我會先由記憶體流失及智能指標 (Smart Pointer) 開始簡介，再逐步介紹 unique_ptr 的基本概念、用法、及簡易實作。
+<meta name="robots" content="noindex, nofollow">
+<title>C&#43;&#43; 學習筆記 - std::unique_ptr | kfwu&#39;s blog</title>
+<meta name="keywords" content="C&#43;&#43;">
+<meta name="description" content="TL;DR 在 C&#43;&#43; 中，std::unique_ptr 是一種很常用的智能指標 (Smart Pointer)，其主要目的是自動管理動態記憶體，避免記憶體流失 (Memory Leak)。
+在本篇筆記中，我會先由記憶體流失及智能指標 (Smart Pointer) 開始簡介，再逐步介紹 std::unique_ptr 的基本概念、用法、及簡易實作。
 前言 記憶體流失簡介 如果要用一句話簡介記憶體流失 (Memory Leak) 的話，可以說：「當一個程式中分配的動態記憶體，在使用完畢後並未將其釋放，則會造成記憶體流失，減少可使用的主記憶體容量」。
 如以下範例所示：
-void func_with_memory_leak() { int* ptr = new int; } 在 func_with_memory_leak() 這個函式中，此函式分配了一塊記憶體，並用 ptr 指向這塊記憶體。當此函式結束後，分配的這個記憶體尚未進行釋放，由於 ptr 這個指標變數的生命週期結束了，導致沒有變數指向這塊已經分配好的記憶體，所以此塊記憶體在整個程式運行期間就沒有辦法進行釋放。
+1 2 3 void func_with_memory_leak() { int* ptr = new int; } 在 func_with_memory_leak() 這個函式中，此函式分配了一塊記憶體，並用 ptr 指向這塊記憶體。當此函式結束後，分配的這個記憶體尚未進行釋放，由於 ptr 這個指標變數的生命週期結束了，導致沒有變數指向這塊已經分配好的記憶體，所以此塊記憶體在整個程式運行期間就沒有辦法進行釋放。
 如果只有一小塊記憶體流失的話對整個程式的影響不大，但如果這類函式是放在迴圈當中 (如下列程式碼所示)，或者是需要常常被呼叫的函式中，就很有可能因主記憶體的容量不夠，進而降低電腦的效能。
-while (some_condition()) { func_with_memory_leak(); } 因此，若是分配出來的動態記憶體，在生命週期結束後，都要記得進行釋放，如下列程式碼所示：
-void func_without_memory_leak() { int* ptr = new int; // ... delete ptr; } 另外，使用 exception 時也會造成記憶體流失的風險。如下列程式碼所示，當例外情況發生時，如果在記憶體釋放前拋出了例外，則記憶體可能會無法正常釋放，導致記憶體流失。
-void func_with_potential_leak() { int* ptr = new int; if (some_condition()) throw std::runtime_error(&#34;An error occurred, the memory hasn&#39;t freed&#34;); delete ptr; } 因此，會需要在例外部分釋放記憶體，如下所示：">
+1 2 3 while (some_condition()) { func_with_memory_leak(); } 因此，若是分配出來的動態記憶體，在生命週期結束後，都要記得進行釋放，如下列程式碼所示：
+1 2 3 4 5 6 7 void func_without_memory_leak() { int* ptr = new int; // ... delete ptr; } 另外，使用 exception 時也會造成記憶體流失的風險。如下列程式碼所示，當例外情況發生時，如果在記憶體釋放前拋出了例外，則記憶體可能會無法正常釋放，導致記憶體流失。">
 <meta name="author" content="">
-<link rel="canonical" href="https://kfwu1999.github.io/posts/cpp/unique_ptr/">
+<link rel="canonical" href="http://localhost:1313/posts/cpp/unique_ptr/">
 <link crossorigin="anonymous" href="/assets/css/stylesheet.fc220c15db4aef0318bbf30adc45d33d4d7c88deff3238b23eb255afdc472ca6.css" integrity="sha256-/CIMFdtK7wMYu/MK3EXTPU18iN7/MjiyPrJVr9xHLKY=" rel="preload stylesheet" as="style">
-<link rel="icon" href="https://kfwu1999.github.io/favicon.ico">
-<link rel="icon" type="image/png" sizes="16x16" href="https://kfwu1999.github.io/favicon-16x16.png">
-<link rel="icon" type="image/png" sizes="32x32" href="https://kfwu1999.github.io/favicon-32x32.png">
-<link rel="apple-touch-icon" href="https://kfwu1999.github.io/apple-touch-icon.png">
-<link rel="mask-icon" href="https://kfwu1999.github.io/safari-pinned-tab.svg">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
 <meta name="theme-color" content="#2e2e33">
 <meta name="msapplication-TileColor" content="#2e2e33">
-<link rel="alternate" hreflang="en" href="https://kfwu1999.github.io/posts/cpp/unique_ptr/">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/posts/cpp/unique_ptr/">
 <noscript>
     <style>
         #theme-toggle,
@@ -63,83 +62,7 @@ void func_with_potential_leak() { int* ptr = new int; if (some_condition()) thro
         }
 
     </style>
-</noscript><meta property="og:title" content="C&#43;&#43; 學習筆記 - unique_ptr" />
-<meta property="og:description" content="總覽 在 C&#43;&#43; 中，std::unique_ptr 是一種很常用的智能指標 (Smart Pointer)，其主要目的是自動管理動態記憶體，避免記憶體流失 (Memory Leak)。
-在本篇筆記中，我會先由記憶體流失及智能指標 (Smart Pointer) 開始簡介，再逐步介紹 unique_ptr 的基本概念、用法、及簡易實作。
-前言 記憶體流失簡介 如果要用一句話簡介記憶體流失 (Memory Leak) 的話，可以說：「當一個程式中分配的動態記憶體，在使用完畢後並未將其釋放，則會造成記憶體流失，減少可使用的主記憶體容量」。
-如以下範例所示：
-void func_with_memory_leak() { int* ptr = new int; } 在 func_with_memory_leak() 這個函式中，此函式分配了一塊記憶體，並用 ptr 指向這塊記憶體。當此函式結束後，分配的這個記憶體尚未進行釋放，由於 ptr 這個指標變數的生命週期結束了，導致沒有變數指向這塊已經分配好的記憶體，所以此塊記憶體在整個程式運行期間就沒有辦法進行釋放。
-如果只有一小塊記憶體流失的話對整個程式的影響不大，但如果這類函式是放在迴圈當中 (如下列程式碼所示)，或者是需要常常被呼叫的函式中，就很有可能因主記憶體的容量不夠，進而降低電腦的效能。
-while (some_condition()) { func_with_memory_leak(); } 因此，若是分配出來的動態記憶體，在生命週期結束後，都要記得進行釋放，如下列程式碼所示：
-void func_without_memory_leak() { int* ptr = new int; // ... delete ptr; } 另外，使用 exception 時也會造成記憶體流失的風險。如下列程式碼所示，當例外情況發生時，如果在記憶體釋放前拋出了例外，則記憶體可能會無法正常釋放，導致記憶體流失。
-void func_with_potential_leak() { int* ptr = new int; if (some_condition()) throw std::runtime_error(&#34;An error occurred, the memory hasn&#39;t freed&#34;); delete ptr; } 因此，會需要在例外部分釋放記憶體，如下所示：" />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="https://kfwu1999.github.io/posts/cpp/unique_ptr/" /><meta property="article:section" content="posts" />
-<meta property="article:published_time" content="2024-09-03T10:53:15+08:00" />
-<meta property="article:modified_time" content="2024-09-03T10:53:15+08:00" />
-
-<meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="C&#43;&#43; 學習筆記 - unique_ptr"/>
-<meta name="twitter:description" content="總覽 在 C&#43;&#43; 中，std::unique_ptr 是一種很常用的智能指標 (Smart Pointer)，其主要目的是自動管理動態記憶體，避免記憶體流失 (Memory Leak)。
-在本篇筆記中，我會先由記憶體流失及智能指標 (Smart Pointer) 開始簡介，再逐步介紹 unique_ptr 的基本概念、用法、及簡易實作。
-前言 記憶體流失簡介 如果要用一句話簡介記憶體流失 (Memory Leak) 的話，可以說：「當一個程式中分配的動態記憶體，在使用完畢後並未將其釋放，則會造成記憶體流失，減少可使用的主記憶體容量」。
-如以下範例所示：
-void func_with_memory_leak() { int* ptr = new int; } 在 func_with_memory_leak() 這個函式中，此函式分配了一塊記憶體，並用 ptr 指向這塊記憶體。當此函式結束後，分配的這個記憶體尚未進行釋放，由於 ptr 這個指標變數的生命週期結束了，導致沒有變數指向這塊已經分配好的記憶體，所以此塊記憶體在整個程式運行期間就沒有辦法進行釋放。
-如果只有一小塊記憶體流失的話對整個程式的影響不大，但如果這類函式是放在迴圈當中 (如下列程式碼所示)，或者是需要常常被呼叫的函式中，就很有可能因主記憶體的容量不夠，進而降低電腦的效能。
-while (some_condition()) { func_with_memory_leak(); } 因此，若是分配出來的動態記憶體，在生命週期結束後，都要記得進行釋放，如下列程式碼所示：
-void func_without_memory_leak() { int* ptr = new int; // ... delete ptr; } 另外，使用 exception 時也會造成記憶體流失的風險。如下列程式碼所示，當例外情況發生時，如果在記憶體釋放前拋出了例外，則記憶體可能會無法正常釋放，導致記憶體流失。
-void func_with_potential_leak() { int* ptr = new int; if (some_condition()) throw std::runtime_error(&#34;An error occurred, the memory hasn&#39;t freed&#34;); delete ptr; } 因此，會需要在例外部分釋放記憶體，如下所示："/>
-
-
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  "itemListElement": [
-    {
-      "@type": "ListItem",
-      "position":  1 ,
-      "name": "Posts",
-      "item": "https://kfwu1999.github.io/posts/"
-    }, 
-    {
-      "@type": "ListItem",
-      "position":  2 ,
-      "name": "C++ 學習筆記 - unique_ptr",
-      "item": "https://kfwu1999.github.io/posts/cpp/unique_ptr/"
-    }
-  ]
-}
-</script>
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "BlogPosting",
-  "headline": "C++ 學習筆記 - unique_ptr",
-  "name": "C\u002b\u002b 學習筆記 - unique_ptr",
-  "description": "總覽 在 C++ 中，std::unique_ptr 是一種很常用的智能指標 (Smart Pointer)，其主要目的是自動管理動態記憶體，避免記憶體流失 (Memory Leak)。\n在本篇筆記中，我會先由記憶體流失及智能指標 (Smart Pointer) 開始簡介，再逐步介紹 unique_ptr 的基本概念、用法、及簡易實作。\n前言 記憶體流失簡介 如果要用一句話簡介記憶體流失 (Memory Leak) 的話，可以說：「當一個程式中分配的動態記憶體，在使用完畢後並未將其釋放，則會造成記憶體流失，減少可使用的主記憶體容量」。\n如以下範例所示：\nvoid func_with_memory_leak() { int* ptr = new int; } 在 func_with_memory_leak() 這個函式中，此函式分配了一塊記憶體，並用 ptr 指向這塊記憶體。當此函式結束後，分配的這個記憶體尚未進行釋放，由於 ptr 這個指標變數的生命週期結束了，導致沒有變數指向這塊已經分配好的記憶體，所以此塊記憶體在整個程式運行期間就沒有辦法進行釋放。\n如果只有一小塊記憶體流失的話對整個程式的影響不大，但如果這類函式是放在迴圈當中 (如下列程式碼所示)，或者是需要常常被呼叫的函式中，就很有可能因主記憶體的容量不夠，進而降低電腦的效能。\nwhile (some_condition()) { func_with_memory_leak(); } 因此，若是分配出來的動態記憶體，在生命週期結束後，都要記得進行釋放，如下列程式碼所示：\nvoid func_without_memory_leak() { int* ptr = new int; // ... delete ptr; } 另外，使用 exception 時也會造成記憶體流失的風險。如下列程式碼所示，當例外情況發生時，如果在記憶體釋放前拋出了例外，則記憶體可能會無法正常釋放，導致記憶體流失。\nvoid func_with_potential_leak() { int* ptr = new int; if (some_condition()) throw std::runtime_error(\u0026#34;An error occurred, the memory hasn\u0026#39;t freed\u0026#34;); delete ptr; } 因此，會需要在例外部分釋放記憶體，如下所示：",
-  "keywords": [
-    
-  ],
-  "articleBody": "總覽 在 C++ 中，std::unique_ptr 是一種很常用的智能指標 (Smart Pointer)，其主要目的是自動管理動態記憶體，避免記憶體流失 (Memory Leak)。\n在本篇筆記中，我會先由記憶體流失及智能指標 (Smart Pointer) 開始簡介，再逐步介紹 unique_ptr 的基本概念、用法、及簡易實作。\n前言 記憶體流失簡介 如果要用一句話簡介記憶體流失 (Memory Leak) 的話，可以說：「當一個程式中分配的動態記憶體，在使用完畢後並未將其釋放，則會造成記憶體流失，減少可使用的主記憶體容量」。\n如以下範例所示：\nvoid func_with_memory_leak() { int* ptr = new int; } 在 func_with_memory_leak() 這個函式中，此函式分配了一塊記憶體，並用 ptr 指向這塊記憶體。當此函式結束後，分配的這個記憶體尚未進行釋放，由於 ptr 這個指標變數的生命週期結束了，導致沒有變數指向這塊已經分配好的記憶體，所以此塊記憶體在整個程式運行期間就沒有辦法進行釋放。\n如果只有一小塊記憶體流失的話對整個程式的影響不大，但如果這類函式是放在迴圈當中 (如下列程式碼所示)，或者是需要常常被呼叫的函式中，就很有可能因主記憶體的容量不夠，進而降低電腦的效能。\nwhile (some_condition()) { func_with_memory_leak(); } 因此，若是分配出來的動態記憶體，在生命週期結束後，都要記得進行釋放，如下列程式碼所示：\nvoid func_without_memory_leak() { int* ptr = new int; // ... delete ptr; } 另外，使用 exception 時也會造成記憶體流失的風險。如下列程式碼所示，當例外情況發生時，如果在記憶體釋放前拋出了例外，則記憶體可能會無法正常釋放，導致記憶體流失。\nvoid func_with_potential_leak() { int* ptr = new int; if (some_condition()) throw std::runtime_error(\"An error occurred, the memory hasn't freed\"); delete ptr; } 因此，會需要在例外部分釋放記憶體，如下所示：\nvoid func_with_potential_leak() { int* ptr = new int; if (some_condition()) { delete ptr; throw std::runtime_error(\"An error occurred\"); } delete ptr; } 智能指標簡介 在 C++ 中，我們可以透過智能指標 (Smart Pointer) 避免記憶體流失的問題。\n智能指標是透過 RAII (維基百科) 的概念，將原始指標 (Raw Pointer) 包裝起來，並在智能指標的生命週期 (Lifetime) 結束時，透過解構子 (Destructor) 自動釋放該原始指標所指向的動態記憶體。\n有點像是下列程式碼的方式：\ntemplate \u003ctypename T\u003e class smart_ptr { // ... ~smart_ptr() { delete p_raw_ptr; } // ... private: T* p_raw_ptr; }; 使用智能指標能簡化使用 raw pointer 的方式，不需要額外透過 delete 釋放記憶體，進而降低記憶體洩漏的風險。\n在 C++ 中有 3 種智能指標，分別為 unique_ptr、shared_ptr、weak_ptr。本篇筆記主要探討的是 unique_ptr，其他種智能指標我會在後續筆記中進行介紹。\nunique_ptr unique_ptr 簡介 std::unique_ptr 是 C++11 中引入的智能指標，其具有 move-only 的特性，這代表 unique_ptr 所管理的資源只會有一個擁有者，也代表該動態記憶體只會有一個負責管理其生命週期的變數，這樣可以避免多重釋放 (Double Deletion) 的問題。 若是要轉換擁有權的話，只能透過移動語意 (Move Semantics) 的方式。\nstd::unique_ptr 是一種輕量且快速的智能指標，其大小與原始指標相同，使用上也沒有太多差異。\nunique_ptr 通常用於那些需要唯一擁有權 (exclusive ownership) 的資源管理場景。\n基本用法 基本語法 std::unique_ptr\u003cT\u003e uptr(new T()); *uptr = some_random_value(); uptr-\u003emember_func(); 注意：雖然可以使用原始指標創建 unique_ptr，但應盡量避免這種做法，以避免多個智能指標指向同一塊記憶體。更好的做法是透過 std::make_unique 來創建 unique_ptr。\n搭配 make_unique 創建 make_unique 是 C++14 中引入的函式，用來簡化 unique_ptr 的創建過程。如以下範例所示：\nstd::unique_ptr\u003cint\u003e ptr = std::make_unique\u003cint\u003e(some_random_val()); 也可以透過 auto 進行簡化：\nauto ptr = std::make_unique\u003cint\u003e(some_random_val()); 使用於函式參數 當 unique_ptr 作為函式參數時，可以通過移動語意來傳遞所有權。以下範例展示了正確和錯誤的用法：\nvoid process_data(std::unique_ptr\u003cint\u003e data) { // ... } void wrong_usage_with_error() { std::unique_ptr\u003cint\u003e uptr = std::make_unique\u003cint\u003e(58); process_data(uptr); // ERROR: `unique_ptr` can't be copied } void use_by_move_semantics() { std::unique_ptr\u003cint\u003e uptr = std::make_unique\u003cint\u003e(58); process_data(std::move(uptr)); // `uptr` will be `nullptr` after transferring ownership to `process_data()` } 如果只需要讀取數據而不改變所有權，可以使用 const 及 call-by-reference 來傳遞，如以下範例所示：\nvoid process_data_with_access_only(const std::unique_ptr\u003cint\u003e\u0026 read_only_data) { // ... } void use_() { std::unique_ptr\u003cint\u003e uptr = std::make_unique\u003cint\u003e(58); process_data_with_access_only(uptr); } 這樣可以確保 unique_ptr 仍然保持所有權，同時允許函式內部讀取其指向的對象。\n所有權轉移 (使用移動語意 Move Semantics) unique_ptr 是 move-only 型別，因此我們可以通過 std::move 來轉移其管理資源的所有權。在以下範例中，ptr1 的所有權被轉移給 ptr2，此時 ptr1 將不再指向任何有效的記憶體。\nstd::unique_ptr\u003cint\u003e ptr1 = std::make_unique\u003cint\u003e(10); std::unique_ptr\u003cint\u003e ptr2 = std::move(ptr1); // transfer ownership from `ptr1` to `ptr2` 轉移所有權後，ptr1 變為 nullptr，不再指向有效的記憶體。\n陣列用法 unique_ptr 也可以用來管理動態分配的陣列，如以下範例所示：\nstd::unique_ptr\u003cint[]\u003e arr = std::make_unique\u003cint[]\u003e(10); 在這個範例中，arr 是一個 unique_ptr，它管理一個包含 10 個 int 元素的動態陣列。當 arr 生命週期結束後，整個陣列會自動被正確釋放。\n使用自訂的刪除器 (Custom Deleter) unique_ptr 可以使用自訂的刪除器，讓他在釋放記憶體時執行特定操作，如以下範例所示：\nstd::unique_ptr\u003cFILE, decltype(\u0026fclose)\u003e file_ptr(fopen(\"temp.txt\", \"r\"), \u0026fclose); 在這個範例中，使用 fclose 作為自訂刪除器，當釋放 FILE* 記憶體時，會自動使用 fclose 關閉文件。\n搭配工廠函式 (Factory Function) 使用 std::unique_ptr 的一個常見的用法，是搭配工廠函式 (Factory Function) 一起使用，範例如下：\nclass Product { public: void say_hello() { std::cout \u003c\u003c \"hello\" \u003c\u003c std::endl; } }; std::unique_ptr\u003cProduct\u003e create_product() { return std::make_unique\u003cProduct\u003e(); } int main() { auto product = create_product(); product-\u003esay_hello(); } 在這個範例中，create_product 函式返回一個 unique_ptr，這個指標管理 Product 對象的生命週期。\n簡易實作 簡易版 unique_ptr template \u003ctypename T\u003e class unique_ptr { private: using element_type = T; using pointer = T*; private: pointer p_ptr; public: constexpr unique_ptr() : p_ptr(nullptr) {} explicit unique_ptr(pointer p) : p_ptr(p) {} unique_ptr(const unique_ptr\u0026 other) = delete; unique_ptr\u0026 operator=(const unique_ptr\u0026 other) = delete; unique_ptr(unique_ptr\u0026\u0026 other) noexcept { if (other != *this) { delete p_ptr; p_ptr = other.p_ptr; other.p_ptr = nullptr; } } unique_ptr\u0026 operator=(unique_ptr\u0026\u0026 other) noexcept { if (other != *this) { delete p_ptr; p_ptr = other.p_ptr; other.p_ptr = nullptr; } return *this; } ~unique_ptr() { delete p_ptr; } public: element_type\u0026 operator*() const noexcept { return *p_ptr; } pointer operator-\u003e() const noexcept { return p_ptr; } explicit operator bool() const noexcept { return p_ptr != nullptr; } public: pointer get() const noexcept { return p_ptr; } void reset(pointer ptr = pointer()) noexcept { pointer old_ptr = p_ptr; p_ptr = ptr; if (old_ptr != nullptr) delete old_ptr; } }; 因為 unique_ptr 是 move-only，所以要透過 delete 的方式刪除 copy constructor 及 copy operator。 operator * 及 operator -\u003e 對於此物件蠻重要的，因為透過更改這兩個 operator，就可以像使用原始指標一樣操作 unique_ptr。 參考資料 Effective Modern C++, Item 18 cppreference: unique_ptr ",
-  "wordCount" : "569",
-  "inLanguage": "en",
-  "datePublished": "2024-09-03T10:53:15+08:00",
-  "dateModified": "2024-09-03T10:53:15+08:00",
-  "mainEntityOfPage": {
-    "@type": "WebPage",
-    "@id": "https://kfwu1999.github.io/posts/cpp/unique_ptr/"
-  },
-  "publisher": {
-    "@type": "Organization",
-    "name": "kfwu's blog",
-    "logo": {
-      "@type": "ImageObject",
-      "url": "https://kfwu1999.github.io/favicon.ico"
-    }
-  }
-}
-</script>
+</noscript>
 </head>
 
 <body class="" id="top">
@@ -157,7 +80,7 @@ void func_with_potential_leak() { int* ptr = new int; if (some_condition()) thro
 <header class="header">
     <nav class="nav">
         <div class="logo">
-            <a href="https://kfwu1999.github.io/" accesskey="h" title="kfwu&#39;s blog (Alt + H)">kfwu&#39;s blog</a>
+            <a href="http://localhost:1313/" accesskey="h" title="kfwu&#39;s blog (Alt + H)">kfwu&#39;s blog</a>
             <div class="logo-switches">
                 <button id="theme-toggle" accesskey="t" title="(Alt + T)">
                     <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
@@ -183,12 +106,7 @@ void func_with_potential_leak() { int* ptr = new int; if (some_condition()) thro
         </div>
         <ul id="menu">
             <li>
-                <a href="https://kfwu1999.github.io/categories/" title="Categories">
-                    <span>Categories</span>
-                </a>
-            </li>
-            <li>
-                <a href="https://kfwu1999.github.io/tags/" title="Tags">
+                <a href="http://localhost:1313/tags/" title="Tags">
                     <span>Tags</span>
                 </a>
             </li>
@@ -199,11 +117,17 @@ void func_with_potential_leak() { int* ptr = new int; if (some_condition()) thro
 
 <article class="post-single">
   <header class="post-header">
-    <div class="breadcrumbs"><a href="https://kfwu1999.github.io/">Home</a>&nbsp;»&nbsp;<a href="https://kfwu1999.github.io/posts/">Posts</a></div>
+    <div class="breadcrumbs"><a href="http://localhost:1313/">Home</a>&nbsp;»&nbsp;<a href="http://localhost:1313/posts/">Posts</a></div>
     <h1 class="post-title entry-hint-parent">
-      C&#43;&#43; 學習筆記 - unique_ptr
+      C&#43;&#43; 學習筆記 - std::unique_ptr
+      <span class="entry-hint" title="Draft">
+        <svg xmlns="http://www.w3.org/2000/svg" height="35" viewBox="0 -960 960 960" fill="currentColor">
+          <path
+            d="M160-410v-60h300v60H160Zm0-165v-60h470v60H160Zm0-165v-60h470v60H160Zm360 580v-123l221-220q9-9 20-13t22-4q12 0 23 4.5t20 13.5l37 37q9 9 13 20t4 22q0 11-4.5 22.5T862.09-380L643-160H520Zm300-263-37-37 37 37ZM580-220h38l121-122-18-19-19-18-122 121v38Zm141-141-19-18 37 37-18-19Z" />
+        </svg>
+      </span>
     </h1>
-    <div class="post-meta"><span title='2024-09-03 10:53:15 +0800 CST'>2024.09.03</span>&nbsp;·&nbsp;3 min
+    <div class="post-meta"><span title='2024-09-03 00:00:00 +0000 UTC'>2024.09.03</span>&nbsp;·&nbsp;5 min
 
 </div>
   </header> <div class="toc">
@@ -214,16 +138,18 @@ void func_with_potential_leak() { int* ptr = new int; if (some_condition()) thro
 
         <div class="inner"><nav id="TableOfContents">
   <ul>
-    <li><a href="#總覽">總覽</a></li>
+    <li><a href="#tldr">TL;DR</a></li>
     <li><a href="#前言">前言</a>
       <ul>
         <li><a href="#記憶體流失簡介">記憶體流失簡介</a></li>
         <li><a href="#智能指標簡介">智能指標簡介</a></li>
       </ul>
     </li>
-    <li><a href="#unique_ptr">unique_ptr</a>
+    <li><a href="#unique_ptr-簡介">unique_ptr 簡介</a>
       <ul>
-        <li><a href="#unique_ptr-簡介">unique_ptr 簡介</a></li>
+        <li><a href="#簡介">簡介</a></li>
+        <li><a href="#與原始指標的差異">與原始指標的差異</a></li>
+        <li><a href="#使用時機">使用時機</a></li>
       </ul>
     </li>
     <li><a href="#基本用法">基本用法</a>
@@ -249,208 +175,535 @@ void func_with_potential_leak() { int* ptr = new int; if (some_condition()) thro
     </details>
 </div>
 
-  <div class="post-content"><h2 id="總覽">總覽<a hidden class="anchor" aria-hidden="true" href="#總覽">#</a></h2>
+  <div class="post-content"><h2 id="tldr">TL;DR<a hidden class="anchor" aria-hidden="true" href="#tldr">#</a></h2>
 <p>在 C++ 中，<code>std::unique_ptr</code> 是一種很常用的智能指標 (Smart Pointer)，其主要目的是自動管理動態記憶體，避免記憶體流失 (Memory Leak)。</p>
-<p>在本篇筆記中，我會先由記憶體流失及智能指標 (Smart Pointer) 開始簡介，再逐步介紹 <code>unique_ptr</code> 的基本概念、用法、及簡易實作。</p>
+<p>在本篇筆記中，我會先由記憶體流失及智能指標 (Smart Pointer) 開始簡介，再逐步介紹 <code>std::unique_ptr</code> 的基本概念、用法、及簡易實作。</p>
+<hr>
 <h2 id="前言">前言<a hidden class="anchor" aria-hidden="true" href="#前言">#</a></h2>
 <h3 id="記憶體流失簡介">記憶體流失簡介<a hidden class="anchor" aria-hidden="true" href="#記憶體流失簡介">#</a></h3>
 <p>如果要用一句話簡介記憶體流失 (Memory Leak) 的話，可以說：「當一個程式中分配的動態記憶體，在使用完畢後並未將其釋放，則會造成記憶體流失，減少可使用的主記憶體容量」。</p>
 <p>如以下範例所示：</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">func_with_memory_leak</span>() {
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">int</span><span style="color:#f92672">*</span> ptr <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#66d9ef">int</span>;
+<div class="highlight"><div style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#e78284">void</span> <span style="color:#8caaee">func_with_memory_leak</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#e78284">int</span><span style="color:#99d1db;font-weight:bold">*</span> ptr <span style="color:#99d1db;font-weight:bold">=</span> <span style="color:#ca9ee6">new</span> <span style="color:#e78284">int</span>;
 </span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><p>在 <code>func_with_memory_leak()</code> 這個函式中，此函式分配了一塊記憶體，並用 <code>ptr</code> 指向這塊記憶體。當此函式結束後，分配的這個記憶體尚未進行釋放，由於 <code>ptr</code> 這個指標變數的生命週期結束了，導致沒有變數指向這塊已經分配好的記憶體，所以此塊記憶體在整個程式運行期間就沒有辦法進行釋放。</p>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>在 <code>func_with_memory_leak()</code> 這個函式中，此函式分配了一塊記憶體，並用 <code>ptr</code> 指向這塊記憶體。當此函式結束後，分配的這個記憶體尚未進行釋放，由於 <code>ptr</code> 這個指標變數的生命週期結束了，導致沒有變數指向這塊已經分配好的記憶體，所以此塊記憶體在整個程式運行期間就沒有辦法進行釋放。</p>
 <p>如果只有一小塊記憶體流失的話對整個程式的影響不大，但如果這類函式是放在迴圈當中 (如下列程式碼所示)，或者是需要常常被呼叫的函式中，就很有可能因主記憶體的容量不夠，進而降低電腦的效能。</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#66d9ef">while</span> (some_condition()) {
+<div class="highlight"><div style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">3
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#ca9ee6">while</span> (some_condition()) {
 </span></span><span style="display:flex;"><span>    func_with_memory_leak();
 </span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><p>因此，若是分配出來的動態記憶體，在生命週期結束後，都要記得進行釋放，如下列程式碼所示：</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">func_without_memory_leak</span>() {
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">int</span><span style="color:#f92672">*</span> ptr <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#66d9ef">int</span>;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>因此，若是分配出來的動態記憶體，在生命週期結束後，都要記得進行釋放，如下列程式碼所示：</p>
+<div class="highlight"><div style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">7
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#e78284">void</span> <span style="color:#8caaee">func_without_memory_leak</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#e78284">int</span><span style="color:#99d1db;font-weight:bold">*</span> ptr <span style="color:#99d1db;font-weight:bold">=</span> <span style="color:#ca9ee6">new</span> <span style="color:#e78284">int</span>;
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// ...
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">delete</span> ptr;
+</span></span><span style="display:flex;"><span>    <span style="color:#737994;font-style:italic">// ...
+</span></span></span><span style="display:flex;"><span><span style="color:#737994;font-style:italic"></span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">delete</span> ptr;
 </span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><p>另外，使用 <code>exception</code> 時也會造成記憶體流失的風險。如下列程式碼所示，當例外情況發生時，如果在記憶體釋放前拋出了例外，則記憶體可能會無法正常釋放，導致記憶體流失。</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">func_with_potential_leak</span>() {
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">int</span><span style="color:#f92672">*</span> ptr <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#66d9ef">int</span>;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>另外，使用 <code>exception</code> 時也會造成記憶體流失的風險。如下列程式碼所示，當例外情況發生時，如果在記憶體釋放前拋出了例外，則記憶體可能會無法正常釋放，導致記憶體流失。</p>
+<div class="highlight"><div style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">8
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#e78284">void</span> <span style="color:#8caaee">func_with_potential_leak</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#e78284">int</span><span style="color:#99d1db;font-weight:bold">*</span> ptr <span style="color:#99d1db;font-weight:bold">=</span> <span style="color:#ca9ee6">new</span> <span style="color:#e78284">int</span>;
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (some_condition())
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">throw</span> std<span style="color:#f92672">::</span>runtime_error(<span style="color:#e6db74">&#34;An error occurred, the memory hasn&#39;t freed&#34;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">if</span> (some_condition())
+</span></span><span style="display:flex;"><span>        <span style="color:#ca9ee6">throw</span> std<span style="color:#99d1db;font-weight:bold">::</span>runtime_error(<span style="color:#a6d189">&#34;An error occurred, the memory hasn&#39;t freed&#34;</span>);
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">delete</span> ptr;
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">delete</span> ptr;
 </span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><p>因此，會需要在例外部分釋放記憶體，如下所示：</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">func_with_potential_leak</span>() {
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">int</span><span style="color:#f92672">*</span> ptr <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#66d9ef">int</span>;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>因此，會需要在例外部分釋放記憶體，如下所示：</p>
+<div class="highlight"><div style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">10
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#e78284">void</span> <span style="color:#8caaee">func_with_potential_leak</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#e78284">int</span><span style="color:#99d1db;font-weight:bold">*</span> ptr <span style="color:#99d1db;font-weight:bold">=</span> <span style="color:#ca9ee6">new</span> <span style="color:#e78284">int</span>;
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (some_condition()) {
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">delete</span> ptr;
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">throw</span> std<span style="color:#f92672">::</span>runtime_error(<span style="color:#e6db74">&#34;An error occurred&#34;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">if</span> (some_condition()) {
+</span></span><span style="display:flex;"><span>        <span style="color:#ca9ee6">delete</span> ptr;
+</span></span><span style="display:flex;"><span>        <span style="color:#ca9ee6">throw</span> std<span style="color:#99d1db;font-weight:bold">::</span>runtime_error(<span style="color:#a6d189">&#34;An error occurred&#34;</span>);
 </span></span><span style="display:flex;"><span>    }
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">delete</span> ptr;
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">delete</span> ptr;
 </span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><h3 id="智能指標簡介">智能指標簡介<a hidden class="anchor" aria-hidden="true" href="#智能指標簡介">#</a></h3>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="智能指標簡介">智能指標簡介<a hidden class="anchor" aria-hidden="true" href="#智能指標簡介">#</a></h3>
 <p>在 C++ 中，我們可以透過智能指標 (Smart Pointer) 避免記憶體流失的問題。</p>
 <p>智能指標是透過 RAII (<a href="https://zh.wikipedia.org/zh-tw/RAII">維基百科</a>) 的概念，將原始指標 (Raw Pointer) 包裝起來，並在智能指標的生命週期 (Lifetime) 結束時，透過解構子 (Destructor) 自動釋放該原始指標所指向的動態記憶體。</p>
 <p>有點像是下列程式碼的方式：</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">typename</span> T<span style="color:#f92672">&gt;</span>
-</span></span><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">smart_ptr</span> {
-</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// ...
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#f92672">~</span>smart_ptr() {
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">delete</span> p_raw_ptr;
+<div class="highlight"><div style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">18
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#ca9ee6">template</span> <span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#ca9ee6">typename</span> T<span style="color:#99d1db;font-weight:bold">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#ca9ee6">class</span> <span style="color:#e5c890">simple_smart_ptr</span> {
+</span></span><span style="display:flex;"><span><span style="color:#ca9ee6">public</span><span style="color:#99d1db;font-weight:bold">:</span>
+</span></span><span style="display:flex;"><span>    simple_smart_ptr(T<span style="color:#99d1db;font-weight:bold">*</span> ptr) 
+</span></span><span style="display:flex;"><span>        <span style="color:#99d1db;font-weight:bold">:</span> p_raw_ptr(ptr) {}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#99d1db;font-weight:bold">~</span>simple_smart_ptr() {
+</span></span><span style="display:flex;"><span>        <span style="color:#ca9ee6">delete</span> p_raw_ptr;
+</span></span><span style="display:flex;"><span>        std<span style="color:#99d1db;font-weight:bold">::</span>cout <span style="color:#99d1db;font-weight:bold">&lt;&lt;</span> <span style="color:#a6d189">&#34;raw pointer deleted&#34;</span> <span style="color:#99d1db;font-weight:bold">&lt;&lt;</span> std<span style="color:#99d1db;font-weight:bold">::</span>endl;
 </span></span><span style="display:flex;"><span>    }
-</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// ...
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">private</span><span style="color:#f92672">:</span>
-</span></span><span style="display:flex;"><span>    T<span style="color:#f92672">*</span> p_raw_ptr;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ca9ee6">private</span><span style="color:#99d1db;font-weight:bold">:</span>
+</span></span><span style="display:flex;"><span>    T<span style="color:#99d1db;font-weight:bold">*</span> p_raw_ptr;
 </span></span><span style="display:flex;"><span>};
-</span></span></code></pre></div><p>使用智能指標能簡化使用 raw pointer 的方式，不需要額外透過 <code>delete</code> 釋放記憶體，進而降低記憶體洩漏的風險。</p>
-<p>在 C++ 中有 3 種智能指標，分別為 <code>unique_ptr</code>、<code>shared_ptr</code>、<code>weak_ptr</code>。本篇筆記主要探討的是 <code>unique_ptr</code>，其他種智能指標我會在後續筆記中進行介紹。</p>
-<h2 id="unique_ptr">unique_ptr<a hidden class="anchor" aria-hidden="true" href="#unique_ptr">#</a></h2>
-<h3 id="unique_ptr-簡介">unique_ptr 簡介<a hidden class="anchor" aria-hidden="true" href="#unique_ptr-簡介">#</a></h3>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#e78284">void</span> <span style="color:#8caaee">func</span>() {
+</span></span><span style="display:flex;"><span>    simple_smart_ptr<span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#e78284">int</span><span style="color:#99d1db;font-weight:bold">&gt;</span> sptr(<span style="color:#ca9ee6">new</span> <span style="color:#e78284">int</span>(<span style="color:#ef9f76">0</span>));
+</span></span><span style="display:flex;"><span>} <span style="color:#737994;font-style:italic">// 離開這個 `func()` 的 scope 後，記憶體將會自動被釋放
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>這樣就簡化使用原始指標的方式，不需要額外透過 <code>delete</code> 釋放記憶體，進而降低記憶體流失的風險。</p>
+<p>而在 C++ 中有 3 種智能指標，分別為 <code>unique_ptr</code>、<code>shared_ptr</code>、<code>weak_ptr</code>。本篇筆記主要探討的是 <code>unique_ptr</code>，其他種智能指標我會在後續筆記中進行介紹。</p>
+<hr>
+<h2 id="unique_ptr-簡介">unique_ptr 簡介<a hidden class="anchor" aria-hidden="true" href="#unique_ptr-簡介">#</a></h2>
+<h3 id="簡介">簡介<a hidden class="anchor" aria-hidden="true" href="#簡介">#</a></h3>
 <p><code>std::unique_ptr</code> 是 C++11 中引入的智能指標，其具有 move-only 的特性，這代表 <code>unique_ptr</code> 所管理的資源只會有一個擁有者，也代表該動態記憶體只會有一個負責管理其生命週期的變數，這樣可以避免多重釋放 (Double Deletion) 的問題。 若是要轉換擁有權的話，只能透過移動語意 (Move Semantics) 的方式。</p>
+<h3 id="與原始指標的差異">與原始指標的差異<a hidden class="anchor" aria-hidden="true" href="#與原始指標的差異">#</a></h3>
 <p><code>std::unique_ptr</code> 是一種輕量且快速的智能指標，其大小與原始指標相同，使用上也沒有太多差異。</p>
+<h3 id="使用時機">使用時機<a hidden class="anchor" aria-hidden="true" href="#使用時機">#</a></h3>
 <p><code>unique_ptr</code> 通常用於那些需要唯一擁有權 (exclusive ownership) 的資源管理場景。</p>
 <h2 id="基本用法">基本用法<a hidden class="anchor" aria-hidden="true" href="#基本用法">#</a></h2>
 <h3 id="基本語法">基本語法<a hidden class="anchor" aria-hidden="true" href="#基本語法">#</a></h3>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span>std<span style="color:#f92672">::</span>unique_ptr<span style="color:#f92672">&lt;</span>T<span style="color:#f92672">&gt;</span> uptr(<span style="color:#66d9ef">new</span> T());
-</span></span><span style="display:flex;"><span><span style="color:#f92672">*</span>uptr <span style="color:#f92672">=</span> some_random_value();
-</span></span><span style="display:flex;"><span>uptr<span style="color:#f92672">-&gt;</span>member_func();
-</span></span></code></pre></div><p>注意：雖然可以使用原始指標創建 <code>unique_ptr</code>，但應盡量避免這種做法，以避免多個智能指標指向同一塊記憶體。更好的做法是透過 <code>std::make_unique</code> 來創建 <code>unique_ptr</code>。</p>
+<div class="highlight"><div style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#e78284">int</span><span style="color:#99d1db;font-weight:bold">*</span> raw_ptr <span style="color:#99d1db;font-weight:bold">=</span> <span style="color:#ca9ee6">new</span> <span style="color:#e78284">int</span>();
+</span></span><span style="display:flex;"><span>    std<span style="color:#99d1db;font-weight:bold">::</span>unique_ptr<span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#e78284">int</span><span style="color:#99d1db;font-weight:bold">&gt;</span> uptr(raw_ptr);
+</span></span><span style="display:flex;"><span>    <span style="color:#99d1db;font-weight:bold">*</span>uptr <span style="color:#99d1db;font-weight:bold">=</span> some_random_value();
+</span></span><span style="display:flex;"><span>    uptr<span style="color:#99d1db;font-weight:bold">-&gt;</span>member_func();
+</span></span><span style="display:flex;"><span>} <span style="color:#737994;font-style:italic">// 這個 scope 結束後，記憶體將自動釋放
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>注意：雖然可以像上述程式碼一樣使用原始指標創建 <code>unique_ptr</code>，但應盡量避免這種做法，以避免多個智能指標指向同一塊記憶體。更好的做法是透過 <code>std::make_unique</code> 來創建 <code>unique_ptr</code>。</p>
 <h3 id="搭配-make_unique-創建">搭配 make_unique 創建<a hidden class="anchor" aria-hidden="true" href="#搭配-make_unique-創建">#</a></h3>
-<p><code>make_unique</code> 是 C++14 中引入的函式，用來簡化 <code>unique_ptr</code> 的創建過程。如以下範例所示：</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span>std<span style="color:#f92672">::</span>unique_ptr<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span><span style="color:#f92672">&gt;</span> ptr <span style="color:#f92672">=</span> std<span style="color:#f92672">::</span>make_unique<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span><span style="color:#f92672">&gt;</span>(some_random_val());
-</span></span></code></pre></div><p>也可以透過 <code>auto</code> 進行簡化：</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#66d9ef">auto</span> ptr <span style="color:#f92672">=</span> std<span style="color:#f92672">::</span>make_unique<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span><span style="color:#f92672">&gt;</span>(some_random_val());
-</span></span></code></pre></div><h3 id="使用於函式參數">使用於函式參數<a hidden class="anchor" aria-hidden="true" href="#使用於函式參數">#</a></h3>
+<p><code>std::make_unique</code> 是 C++14 中引入的函式，用來簡化 <code>unique_ptr</code> 的創建過程。如以下範例所示：</p>
+<div class="highlight"><div style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span>std<span style="color:#99d1db;font-weight:bold">::</span>unique_ptr<span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#e78284">int</span><span style="color:#99d1db;font-weight:bold">&gt;</span> ptr <span style="color:#99d1db;font-weight:bold">=</span> std<span style="color:#99d1db;font-weight:bold">::</span>make_unique<span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#e78284">int</span><span style="color:#99d1db;font-weight:bold">&gt;</span>(some_random_val());
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>也可以透過 <code>auto</code> 進行簡化：</p>
+<div class="highlight"><div style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#ca9ee6">auto</span> ptr <span style="color:#99d1db;font-weight:bold">=</span> std<span style="color:#99d1db;font-weight:bold">::</span>make_unique<span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#e78284">int</span><span style="color:#99d1db;font-weight:bold">&gt;</span>(some_random_val());
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="使用於函式參數">使用於函式參數<a hidden class="anchor" aria-hidden="true" href="#使用於函式參數">#</a></h3>
 <p>當 <code>unique_ptr</code> 作為函式參數時，可以通過移動語意來傳遞所有權。以下範例展示了正確和錯誤的用法：</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">process_data</span>(std<span style="color:#f92672">::</span>unique_ptr<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span><span style="color:#f92672">&gt;</span> data) {
-</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// ...
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+<div class="highlight"><div style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">14
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#e78284">void</span> <span style="color:#8caaee">process_data</span>(std<span style="color:#99d1db;font-weight:bold">::</span>unique_ptr<span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#e78284">int</span><span style="color:#99d1db;font-weight:bold">&gt;</span> data) {
+</span></span><span style="display:flex;"><span>    <span style="color:#737994;font-style:italic">// ...
+</span></span></span><span style="display:flex;"><span><span style="color:#737994;font-style:italic"></span>}
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">wrong_usage_with_error</span>() {
-</span></span><span style="display:flex;"><span>    std<span style="color:#f92672">::</span>unique_ptr<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span><span style="color:#f92672">&gt;</span> uptr <span style="color:#f92672">=</span> std<span style="color:#f92672">::</span>make_unique<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span><span style="color:#f92672">&gt;</span>(<span style="color:#ae81ff">58</span>);
-</span></span><span style="display:flex;"><span>    process_data(uptr);   <span style="color:#75715e">// ERROR: `unique_ptr` can&#39;t be copied
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span><span style="display:flex;"><span><span style="color:#e78284">void</span> <span style="color:#8caaee">wrong_usage_with_error</span>() {
+</span></span><span style="display:flex;"><span>    std<span style="color:#99d1db;font-weight:bold">::</span>unique_ptr<span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#e78284">int</span><span style="color:#99d1db;font-weight:bold">&gt;</span> uptr <span style="color:#99d1db;font-weight:bold">=</span> std<span style="color:#99d1db;font-weight:bold">::</span>make_unique<span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#e78284">int</span><span style="color:#99d1db;font-weight:bold">&gt;</span>(<span style="color:#ef9f76">58</span>);
+</span></span><span style="display:flex;"><span>    process_data(uptr);   <span style="color:#737994;font-style:italic">// ERROR: `unique_ptr` can&#39;t be copied
+</span></span></span><span style="display:flex;"><span><span style="color:#737994;font-style:italic"></span>}
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">use_by_move_semantics</span>() {
-</span></span><span style="display:flex;"><span>    std<span style="color:#f92672">::</span>unique_ptr<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span><span style="color:#f92672">&gt;</span> uptr <span style="color:#f92672">=</span> std<span style="color:#f92672">::</span>make_unique<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span><span style="color:#f92672">&gt;</span>(<span style="color:#ae81ff">58</span>);
-</span></span><span style="display:flex;"><span>    process_data(std<span style="color:#f92672">::</span>move(uptr));
-</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// `uptr` will be `nullptr` after transferring ownership to `process_data()`
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
-</span></span></code></pre></div><p>如果只需要讀取數據而不改變所有權，可以使用 const 及 call-by-reference 來傳遞，如以下範例所示：</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">process_data_with_access_only</span>(<span style="color:#66d9ef">const</span> std<span style="color:#f92672">::</span>unique_ptr<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span><span style="color:#f92672">&gt;&amp;</span> read_only_data) {
-</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// ...
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span><span style="display:flex;"><span><span style="color:#e78284">void</span> <span style="color:#8caaee">use_by_move_semantics</span>() {
+</span></span><span style="display:flex;"><span>    std<span style="color:#99d1db;font-weight:bold">::</span>unique_ptr<span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#e78284">int</span><span style="color:#99d1db;font-weight:bold">&gt;</span> uptr <span style="color:#99d1db;font-weight:bold">=</span> std<span style="color:#99d1db;font-weight:bold">::</span>make_unique<span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#e78284">int</span><span style="color:#99d1db;font-weight:bold">&gt;</span>(<span style="color:#ef9f76">58</span>);
+</span></span><span style="display:flex;"><span>    process_data(std<span style="color:#99d1db;font-weight:bold">::</span>move(uptr));
+</span></span><span style="display:flex;"><span>    <span style="color:#737994;font-style:italic">// `uptr` will be `nullptr` after transferring ownership to `process_data()`
+</span></span></span><span style="display:flex;"><span><span style="color:#737994;font-style:italic"></span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>如果只需要讀取數據而不改變所有權，可以使用 const 及 call-by-reference 來傳遞，如以下範例所示：</p>
+<div class="highlight"><div style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">8
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#e78284">void</span> <span style="color:#8caaee">process_data_with_access_only</span>(<span style="color:#ca9ee6">const</span> std<span style="color:#99d1db;font-weight:bold">::</span>unique_ptr<span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#e78284">int</span><span style="color:#99d1db;font-weight:bold">&gt;&amp;</span> read_only_data) {
+</span></span><span style="display:flex;"><span>    <span style="color:#737994;font-style:italic">// ...
+</span></span></span><span style="display:flex;"><span><span style="color:#737994;font-style:italic"></span>}
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">use_</span>() {
-</span></span><span style="display:flex;"><span>    std<span style="color:#f92672">::</span>unique_ptr<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span><span style="color:#f92672">&gt;</span> uptr <span style="color:#f92672">=</span> std<span style="color:#f92672">::</span>make_unique<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span><span style="color:#f92672">&gt;</span>(<span style="color:#ae81ff">58</span>);
+</span></span><span style="display:flex;"><span><span style="color:#e78284">void</span> <span style="color:#8caaee">use_with_const_ref</span>() {
+</span></span><span style="display:flex;"><span>    std<span style="color:#99d1db;font-weight:bold">::</span>unique_ptr<span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#e78284">int</span><span style="color:#99d1db;font-weight:bold">&gt;</span> uptr <span style="color:#99d1db;font-weight:bold">=</span> std<span style="color:#99d1db;font-weight:bold">::</span>make_unique<span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#e78284">int</span><span style="color:#99d1db;font-weight:bold">&gt;</span>(<span style="color:#ef9f76">58</span>);
 </span></span><span style="display:flex;"><span>    process_data_with_access_only(uptr);
 </span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><p>這樣可以確保 unique_ptr 仍然保持所有權，同時允許函式內部讀取其指向的對象。</p>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>這樣可以確保 unique_ptr 仍然保持所有權，同時允許函式內部讀取其指向的對象。</p>
 <h3 id="所有權轉移-使用移動語意-move-semantics">所有權轉移 (使用移動語意 Move Semantics)<a hidden class="anchor" aria-hidden="true" href="#所有權轉移-使用移動語意-move-semantics">#</a></h3>
 <p><code>unique_ptr</code> 是 move-only 型別，因此我們可以通過 <code>std::move</code> 來轉移其管理資源的所有權。在以下範例中，<code>ptr1</code> 的所有權被轉移給 <code>ptr2</code>，此時 <code>ptr1</code> 將不再指向任何有效的記憶體。</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span>std<span style="color:#f92672">::</span>unique_ptr<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span><span style="color:#f92672">&gt;</span> ptr1 <span style="color:#f92672">=</span> std<span style="color:#f92672">::</span>make_unique<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span><span style="color:#f92672">&gt;</span>(<span style="color:#ae81ff">10</span>);
-</span></span><span style="display:flex;"><span>std<span style="color:#f92672">::</span>unique_ptr<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span><span style="color:#f92672">&gt;</span> ptr2 <span style="color:#f92672">=</span> std<span style="color:#f92672">::</span>move(ptr1); <span style="color:#75715e">// transfer ownership from `ptr1` to `ptr2`
-</span></span></span></code></pre></div><p>轉移所有權後，ptr1 變為 <code>nullptr</code>，不再指向有效的記憶體。</p>
+<div class="highlight"><div style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span>std<span style="color:#99d1db;font-weight:bold">::</span>unique_ptr<span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#e78284">int</span><span style="color:#99d1db;font-weight:bold">&gt;</span> ptr1 <span style="color:#99d1db;font-weight:bold">=</span> std<span style="color:#99d1db;font-weight:bold">::</span>make_unique<span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#e78284">int</span><span style="color:#99d1db;font-weight:bold">&gt;</span>(<span style="color:#ef9f76">10</span>);
+</span></span><span style="display:flex;"><span>std<span style="color:#99d1db;font-weight:bold">::</span>unique_ptr<span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#e78284">int</span><span style="color:#99d1db;font-weight:bold">&gt;</span> ptr2 <span style="color:#99d1db;font-weight:bold">=</span> std<span style="color:#99d1db;font-weight:bold">::</span>move(ptr1); <span style="color:#737994;font-style:italic">// transfer ownership from `ptr1` to `ptr2`
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>轉移所有權後，ptr1 變為 <code>nullptr</code>，不再指向有效的記憶體。</p>
 <h3 id="陣列用法">陣列用法<a hidden class="anchor" aria-hidden="true" href="#陣列用法">#</a></h3>
 <p><code>unique_ptr</code> 也可以用來管理動態分配的陣列，如以下範例所示：</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span>std<span style="color:#f92672">::</span>unique_ptr<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span>[]<span style="color:#f92672">&gt;</span> arr <span style="color:#f92672">=</span> std<span style="color:#f92672">::</span>make_unique<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span>[]<span style="color:#f92672">&gt;</span>(<span style="color:#ae81ff">10</span>);
-</span></span></code></pre></div><p>在這個範例中，<code>arr</code> 是一個 <code>unique_ptr</code>，它管理一個包含 10 個 <code>int</code> 元素的動態陣列。當 <code>arr</code> 生命週期結束後，整個陣列會自動被正確釋放。</p>
+<div class="highlight"><div style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span>std<span style="color:#99d1db;font-weight:bold">::</span>unique_ptr<span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#e78284">int</span>[]<span style="color:#99d1db;font-weight:bold">&gt;</span> arr <span style="color:#99d1db;font-weight:bold">=</span> std<span style="color:#99d1db;font-weight:bold">::</span>make_unique<span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#e78284">int</span>[]<span style="color:#99d1db;font-weight:bold">&gt;</span>(<span style="color:#ef9f76">10</span>);
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>在這個範例中，<code>arr</code> 是一個 <code>unique_ptr</code>，它管理一個包含 10 個 <code>int</code> 元素的動態陣列。當 <code>arr</code> 生命週期結束後，整個陣列會自動被正確釋放。</p>
 <h3 id="使用自訂的刪除器-custom-deleter">使用自訂的刪除器 (Custom Deleter)<a hidden class="anchor" aria-hidden="true" href="#使用自訂的刪除器-custom-deleter">#</a></h3>
 <p><code>unique_ptr</code> 可以使用自訂的刪除器，讓他在釋放記憶體時執行特定操作，如以下範例所示：</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span>std<span style="color:#f92672">::</span>unique_ptr<span style="color:#f92672">&lt;</span>FILE, <span style="color:#66d9ef">decltype</span>(<span style="color:#f92672">&amp;</span>fclose)<span style="color:#f92672">&gt;</span> file_ptr(fopen(<span style="color:#e6db74">&#34;temp.txt&#34;</span>, <span style="color:#e6db74">&#34;r&#34;</span>), <span style="color:#f92672">&amp;</span>fclose);
-</span></span></code></pre></div><p>在這個範例中，使用 <code>fclose</code> 作為自訂刪除器，當釋放 <code>FILE*</code> 記憶體時，會自動使用 <code>fclose</code> 關閉文件。</p>
+<div class="highlight"><div style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span>std<span style="color:#99d1db;font-weight:bold">::</span>unique_ptr<span style="color:#99d1db;font-weight:bold">&lt;</span>FILE, <span style="color:#ca9ee6">decltype</span>(<span style="color:#99d1db;font-weight:bold">&amp;</span>fclose)<span style="color:#99d1db;font-weight:bold">&gt;</span> file_ptr(fopen(<span style="color:#a6d189">&#34;temp.txt&#34;</span>, <span style="color:#a6d189">&#34;r&#34;</span>), <span style="color:#99d1db;font-weight:bold">&amp;</span>fclose);
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>在這個範例中，使用 <code>fclose</code> 作為自訂刪除器，當釋放 <code>FILE*</code> 記憶體時，會自動使用 <code>fclose</code> 關閉文件。</p>
 <h3 id="搭配工廠函式-factory-function-使用">搭配工廠函式 (Factory Function) 使用<a hidden class="anchor" aria-hidden="true" href="#搭配工廠函式-factory-function-使用">#</a></h3>
 <p><code>std::unique_ptr</code> 的一個常見的用法，是搭配工廠函式 (Factory Function) 一起使用，範例如下：</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Product</span> {
-</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">void</span> say_hello() { std<span style="color:#f92672">::</span>cout <span style="color:#f92672">&lt;&lt;</span> <span style="color:#e6db74">&#34;hello&#34;</span> <span style="color:#f92672">&lt;&lt;</span> std<span style="color:#f92672">::</span>endl; }
+<div class="highlight"><div style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">22
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">23
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">24
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">25
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">26
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">27
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">28
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">29
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">30
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">31
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">32
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">33
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">34
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">35
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">36
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">37
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">38
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">39
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">40
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">41
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#ca9ee6">class</span> <span style="color:#e5c890">IProduct</span> {
+</span></span><span style="display:flex;"><span><span style="color:#ca9ee6">public</span><span style="color:#99d1db;font-weight:bold">:</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">virtual</span> <span style="color:#e78284">void</span> say_hello() <span style="color:#ca9ee6">const</span> <span style="color:#99d1db;font-weight:bold">=</span> <span style="color:#ef9f76">0</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">virtual</span> <span style="color:#99d1db;font-weight:bold">~</span>IProduct() <span style="color:#99d1db;font-weight:bold">=</span> <span style="color:#ca9ee6">default</span>;
 </span></span><span style="display:flex;"><span>};
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>std<span style="color:#f92672">::</span>unique_ptr<span style="color:#f92672">&lt;</span>Product<span style="color:#f92672">&gt;</span> create_product() {
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> std<span style="color:#f92672">::</span>make_unique<span style="color:#f92672">&lt;</span>Product<span style="color:#f92672">&gt;</span>();
+</span></span><span style="display:flex;"><span><span style="color:#ca9ee6">class</span> <span style="color:#e5c890">ProductA</span> <span style="color:#99d1db;font-weight:bold">:</span> <span style="color:#ca9ee6">public</span> IProduct {
+</span></span><span style="display:flex;"><span><span style="color:#ca9ee6">public</span><span style="color:#99d1db;font-weight:bold">:</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#e78284">void</span> say_hello() <span style="color:#ca9ee6">const</span> <span style="color:#ca9ee6">override</span> {
+</span></span><span style="display:flex;"><span>        std<span style="color:#99d1db;font-weight:bold">::</span>cout <span style="color:#99d1db;font-weight:bold">&lt;&lt;</span> <span style="color:#a6d189">&#34;Hello from Product A!&#34;</span> <span style="color:#99d1db;font-weight:bold">&lt;&lt;</span> std<span style="color:#99d1db;font-weight:bold">::</span>endl;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ca9ee6">class</span> <span style="color:#e5c890">ProductB</span> <span style="color:#99d1db;font-weight:bold">:</span> <span style="color:#ca9ee6">public</span> IProduct {
+</span></span><span style="display:flex;"><span><span style="color:#ca9ee6">public</span><span style="color:#99d1db;font-weight:bold">:</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#e78284">void</span> say_hello() <span style="color:#ca9ee6">const</span> <span style="color:#ca9ee6">override</span> {
+</span></span><span style="display:flex;"><span>        std<span style="color:#99d1db;font-weight:bold">::</span>cout <span style="color:#99d1db;font-weight:bold">&lt;&lt;</span> <span style="color:#a6d189">&#34;Hello from Product B!&#34;</span> <span style="color:#99d1db;font-weight:bold">&lt;&lt;</span> std<span style="color:#99d1db;font-weight:bold">::</span>endl;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>std<span style="color:#99d1db;font-weight:bold">::</span>unique_ptr<span style="color:#99d1db;font-weight:bold">&lt;</span>IProduct<span style="color:#99d1db;font-weight:bold">&gt;</span> create_product(<span style="color:#ca9ee6">const</span> std<span style="color:#99d1db;font-weight:bold">::</span>string<span style="color:#99d1db;font-weight:bold">&amp;</span> type) {
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">if</span> (type <span style="color:#99d1db;font-weight:bold">==</span> <span style="color:#a6d189">&#34;A&#34;</span>)
+</span></span><span style="display:flex;"><span>        <span style="color:#ca9ee6">return</span> std<span style="color:#99d1db;font-weight:bold">::</span>make_unique<span style="color:#99d1db;font-weight:bold">&lt;</span>ProductA<span style="color:#99d1db;font-weight:bold">&gt;</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">else</span> <span style="color:#8caaee">if</span> (type <span style="color:#99d1db;font-weight:bold">==</span> <span style="color:#a6d189">&#34;B&#34;</span>)
+</span></span><span style="display:flex;"><span>        <span style="color:#ca9ee6">return</span> std<span style="color:#99d1db;font-weight:bold">::</span>make_unique<span style="color:#99d1db;font-weight:bold">&lt;</span>ProductB<span style="color:#99d1db;font-weight:bold">&gt;</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">return</span> <span style="color:#ca9ee6">nullptr</span>;
 </span></span><span style="display:flex;"><span>}
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>() {
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">auto</span> product <span style="color:#f92672">=</span> create_product();
-</span></span><span style="display:flex;"><span>    product<span style="color:#f92672">-&gt;</span>say_hello();
+</span></span><span style="display:flex;"><span><span style="color:#e78284">int</span> <span style="color:#8caaee">main</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#737994;font-style:italic">// 
+</span></span></span><span style="display:flex;"><span><span style="color:#737994;font-style:italic"></span>    <span style="color:#ca9ee6">auto</span> productA <span style="color:#99d1db;font-weight:bold">=</span> create_product(<span style="color:#a6d189">&#34;A&#34;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">auto</span> productB <span style="color:#99d1db;font-weight:bold">=</span> create_product(<span style="color:#a6d189">&#34;B&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#737994;font-style:italic">// 
+</span></span></span><span style="display:flex;"><span><span style="color:#737994;font-style:italic"></span>    <span style="color:#ca9ee6">if</span> (productA <span style="color:#99d1db;font-weight:bold">!=</span> <span style="color:#ca9ee6">nullptr</span>)
+</span></span><span style="display:flex;"><span>        productA<span style="color:#99d1db;font-weight:bold">-&gt;</span>say_hello();
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">if</span> (productB <span style="color:#99d1db;font-weight:bold">!=</span> <span style="color:#ca9ee6">nullptr</span>)
+</span></span><span style="display:flex;"><span>        productB<span style="color:#99d1db;font-weight:bold">-&gt;</span>say_hello();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">return</span> <span style="color:#ef9f76">0</span>;
 </span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><p>在這個範例中，<code>create_product</code> 函式返回一個 <code>unique_ptr</code>，這個指標管理 <code>Product</code> 對象的生命週期。</p>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>在這個範例中，<code>create_product</code> 函式返回一個 <code>std::unique_ptr&lt;IProduct&gt;</code>，它負責自動管理 Product 對象的生命週期。由於 <code>ProductA</code> 和 <code>ProductB</code> 是 <code>IProduct</code> 的子類別，所以可以透過父類別指標來操作不同的子類別物件，</p>
+<hr>
 <h2 id="簡易實作">簡易實作<a hidden class="anchor" aria-hidden="true" href="#簡易實作">#</a></h2>
 <h3 id="簡易版-unique_ptr">簡易版 unique_ptr<a hidden class="anchor" aria-hidden="true" href="#簡易版-unique_ptr">#</a></h3>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">typename</span> T<span style="color:#f92672">&gt;</span>
-</span></span><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">unique_ptr</span> {
-</span></span><span style="display:flex;"><span><span style="color:#66d9ef">private</span><span style="color:#f92672">:</span>
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">using</span> element_type <span style="color:#f92672">=</span> T;
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">using</span> pointer      <span style="color:#f92672">=</span> T<span style="color:#f92672">*</span>;
+<div class="highlight"><div style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">22
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">23
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">24
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">25
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">26
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">27
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">28
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">29
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">30
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">31
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">32
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">33
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">34
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">35
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">36
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">37
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">38
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">39
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">40
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">41
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">42
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">43
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">44
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">45
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">46
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">47
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">48
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">49
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">50
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">51
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">52
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">53
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">54
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">55
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">56
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">57
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">58
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">59
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">60
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">61
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">62
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">63
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">64
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#ca9ee6">template</span> <span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#ca9ee6">typename</span> T<span style="color:#99d1db;font-weight:bold">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#ca9ee6">class</span> <span style="color:#e5c890">unique_ptr</span> {
+</span></span><span style="display:flex;"><span><span style="color:#ca9ee6">private</span><span style="color:#99d1db;font-weight:bold">:</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">using</span> element_type <span style="color:#99d1db;font-weight:bold">=</span> T;
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">using</span> pointer      <span style="color:#99d1db;font-weight:bold">=</span> T<span style="color:#99d1db;font-weight:bold">*</span>;
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#66d9ef">private</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span><span style="color:#ca9ee6">private</span><span style="color:#99d1db;font-weight:bold">:</span>
 </span></span><span style="display:flex;"><span>    pointer p_ptr;
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">constexpr</span> unique_ptr()
-</span></span><span style="display:flex;"><span>        <span style="color:#f92672">:</span> p_ptr(<span style="color:#66d9ef">nullptr</span>) {}
+</span></span><span style="display:flex;"><span><span style="color:#ca9ee6">public</span><span style="color:#99d1db;font-weight:bold">:</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">constexpr</span> unique_ptr()
+</span></span><span style="display:flex;"><span>        <span style="color:#99d1db;font-weight:bold">:</span> p_ptr(<span style="color:#ca9ee6">nullptr</span>) {}
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">explicit</span> <span style="color:#a6e22e">unique_ptr</span>(pointer p)
-</span></span><span style="display:flex;"><span>        <span style="color:#f92672">:</span> p_ptr(p) {}
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">explicit</span> <span style="color:#8caaee">unique_ptr</span>(pointer p)
+</span></span><span style="display:flex;"><span>        <span style="color:#99d1db;font-weight:bold">:</span> p_ptr(p) {}
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>    unique_ptr(<span style="color:#66d9ef">const</span> unique_ptr<span style="color:#f92672">&amp;</span> other) <span style="color:#f92672">=</span> <span style="color:#66d9ef">delete</span>;
+</span></span><span style="display:flex;"><span>    unique_ptr(<span style="color:#ca9ee6">const</span> unique_ptr<span style="color:#99d1db;font-weight:bold">&amp;</span> other) <span style="color:#99d1db;font-weight:bold">=</span> <span style="color:#ca9ee6">delete</span>;
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>    unique_ptr<span style="color:#f92672">&amp;</span> <span style="color:#66d9ef">operator</span><span style="color:#f92672">=</span>(<span style="color:#66d9ef">const</span> unique_ptr<span style="color:#f92672">&amp;</span> other) <span style="color:#f92672">=</span> <span style="color:#66d9ef">delete</span>;
+</span></span><span style="display:flex;"><span>    unique_ptr<span style="color:#99d1db;font-weight:bold">&amp;</span> <span style="color:#ca9ee6">operator</span><span style="color:#99d1db;font-weight:bold">=</span>(<span style="color:#ca9ee6">const</span> unique_ptr<span style="color:#99d1db;font-weight:bold">&amp;</span> other) <span style="color:#99d1db;font-weight:bold">=</span> <span style="color:#ca9ee6">delete</span>;
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>    unique_ptr(unique_ptr<span style="color:#f92672">&amp;&amp;</span> other) <span style="color:#66d9ef">noexcept</span> {
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (other <span style="color:#f92672">!=</span> <span style="color:#f92672">*</span><span style="color:#66d9ef">this</span>) {
-</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">delete</span> p_ptr;
-</span></span><span style="display:flex;"><span>            p_ptr <span style="color:#f92672">=</span> other.p_ptr;
-</span></span><span style="display:flex;"><span>            other.p_ptr <span style="color:#f92672">=</span> <span style="color:#66d9ef">nullptr</span>;
+</span></span><span style="display:flex;"><span>    unique_ptr(unique_ptr<span style="color:#99d1db;font-weight:bold">&amp;&amp;</span> other) <span style="color:#ca9ee6">noexcept</span> 
+</span></span><span style="display:flex;"><span>        <span style="color:#99d1db;font-weight:bold">:</span> p_ptr(other.p_ptr)
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>        other.p_ptr <span style="color:#99d1db;font-weight:bold">=</span> <span style="color:#ca9ee6">nullptr</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    unique_ptr<span style="color:#99d1db;font-weight:bold">&amp;</span> <span style="color:#ca9ee6">operator</span><span style="color:#99d1db;font-weight:bold">=</span>(unique_ptr<span style="color:#99d1db;font-weight:bold">&amp;&amp;</span> other) <span style="color:#ca9ee6">noexcept</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#ca9ee6">if</span> (other <span style="color:#99d1db;font-weight:bold">!=</span> <span style="color:#99d1db;font-weight:bold">*</span><span style="color:#ca9ee6">this</span>) {
+</span></span><span style="display:flex;"><span>            <span style="color:#ca9ee6">delete</span> p_ptr;
+</span></span><span style="display:flex;"><span>            p_ptr <span style="color:#99d1db;font-weight:bold">=</span> other.p_ptr;
+</span></span><span style="display:flex;"><span>            other.p_ptr <span style="color:#99d1db;font-weight:bold">=</span> <span style="color:#ca9ee6">nullptr</span>;
 </span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>        <span style="color:#ca9ee6">return</span> <span style="color:#99d1db;font-weight:bold">*</span><span style="color:#ca9ee6">this</span>;
 </span></span><span style="display:flex;"><span>    }
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>    unique_ptr<span style="color:#f92672">&amp;</span> <span style="color:#66d9ef">operator</span><span style="color:#f92672">=</span>(unique_ptr<span style="color:#f92672">&amp;&amp;</span> other) <span style="color:#66d9ef">noexcept</span> {
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (other <span style="color:#f92672">!=</span> <span style="color:#f92672">*</span><span style="color:#66d9ef">this</span>) {
-</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">delete</span> p_ptr;
-</span></span><span style="display:flex;"><span>            p_ptr <span style="color:#f92672">=</span> other.p_ptr;
-</span></span><span style="display:flex;"><span>            other.p_ptr <span style="color:#f92672">=</span> <span style="color:#66d9ef">nullptr</span>;
-</span></span><span style="display:flex;"><span>        }
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#f92672">*</span><span style="color:#66d9ef">this</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#99d1db;font-weight:bold">~</span>unique_ptr() {
+</span></span><span style="display:flex;"><span>        <span style="color:#ca9ee6">delete</span> p_ptr;
 </span></span><span style="display:flex;"><span>    }
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>    <span style="color:#f92672">~</span>unique_ptr() {
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">delete</span> p_ptr;
+</span></span><span style="display:flex;"><span><span style="color:#ca9ee6">public</span><span style="color:#99d1db;font-weight:bold">:</span>
+</span></span><span style="display:flex;"><span>    element_type<span style="color:#99d1db;font-weight:bold">&amp;</span> <span style="color:#ca9ee6">operator</span><span style="color:#99d1db;font-weight:bold">*</span>() <span style="color:#ca9ee6">const</span> <span style="color:#ca9ee6">noexcept</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#ca9ee6">return</span> <span style="color:#99d1db;font-weight:bold">*</span>p_ptr;
 </span></span><span style="display:flex;"><span>    }
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
-</span></span><span style="display:flex;"><span>    element_type<span style="color:#f92672">&amp;</span> <span style="color:#66d9ef">operator</span><span style="color:#f92672">*</span>() <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">noexcept</span> {
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#f92672">*</span>p_ptr;
+</span></span><span style="display:flex;"><span>    pointer <span style="color:#ca9ee6">operator</span><span style="color:#99d1db;font-weight:bold">-&gt;</span>() <span style="color:#ca9ee6">const</span> <span style="color:#ca9ee6">noexcept</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#ca9ee6">return</span> p_ptr;
 </span></span><span style="display:flex;"><span>    }
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>    pointer <span style="color:#66d9ef">operator</span><span style="color:#f92672">-&gt;</span>() <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">noexcept</span> {
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> p_ptr;
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">explicit</span> <span style="color:#ca9ee6">operator</span> <span style="color:#8caaee">bool</span>() <span style="color:#ca9ee6">const</span> <span style="color:#ca9ee6">noexcept</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#ca9ee6">return</span> p_ptr <span style="color:#99d1db;font-weight:bold">!=</span> <span style="color:#ca9ee6">nullptr</span>;
 </span></span><span style="display:flex;"><span>    }
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">explicit</span> <span style="color:#66d9ef">operator</span> <span style="color:#a6e22e">bool</span>() <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">noexcept</span> {
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> p_ptr <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nullptr</span>;
+</span></span><span style="display:flex;"><span><span style="color:#ca9ee6">public</span><span style="color:#99d1db;font-weight:bold">:</span>
+</span></span><span style="display:flex;"><span>    pointer get() <span style="color:#ca9ee6">const</span> <span style="color:#ca9ee6">noexcept</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#ca9ee6">return</span> p_ptr;
 </span></span><span style="display:flex;"><span>    }
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
-</span></span><span style="display:flex;"><span>    pointer get() <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">noexcept</span> {
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> p_ptr;
-</span></span><span style="display:flex;"><span>    }
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">reset</span>(pointer ptr <span style="color:#f92672">=</span> pointer()) <span style="color:#66d9ef">noexcept</span> {
-</span></span><span style="display:flex;"><span>        pointer old_ptr <span style="color:#f92672">=</span> p_ptr;
-</span></span><span style="display:flex;"><span>        p_ptr <span style="color:#f92672">=</span> ptr;
-</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (old_ptr <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nullptr</span>)
-</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">delete</span> old_ptr;
+</span></span><span style="display:flex;"><span>    <span style="color:#e78284">void</span> <span style="color:#8caaee">reset</span>(pointer ptr <span style="color:#99d1db;font-weight:bold">=</span> pointer()) <span style="color:#ca9ee6">noexcept</span> {
+</span></span><span style="display:flex;"><span>        pointer old_ptr <span style="color:#99d1db;font-weight:bold">=</span> p_ptr;
+</span></span><span style="display:flex;"><span>        p_ptr <span style="color:#99d1db;font-weight:bold">=</span> ptr;
+</span></span><span style="display:flex;"><span>        <span style="color:#ca9ee6">if</span> (old_ptr <span style="color:#99d1db;font-weight:bold">!=</span> <span style="color:#ca9ee6">nullptr</span>)
+</span></span><span style="display:flex;"><span>            <span style="color:#ca9ee6">delete</span> old_ptr;
 </span></span><span style="display:flex;"><span>    }
 </span></span><span style="display:flex;"><span>};
-</span></span></code></pre></div><ul>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
 <li>因為 <code>unique_ptr</code> 是 move-only，所以要透過 <code>delete</code> 的方式刪除 copy constructor 及 copy operator。</li>
 <li>operator <code>*</code> 及 operator <code>-&gt;</code> 對於此物件蠻重要的，因為透過更改這兩個 operator，就可以像使用原始指標一樣操作 <code>unique_ptr</code>。</li>
 </ul>
+<hr>
 <h2 id="參考資料">參考資料<a hidden class="anchor" aria-hidden="true" href="#參考資料">#</a></h2>
 <ul>
 <li><a href="https://www.amazon.com/Effective-Modern-Specific-Ways-Improve/dp/1491903996">Effective Modern C++</a>, Item 18</li>
@@ -462,13 +715,14 @@ void func_with_potential_leak() { int* ptr = new int; if (some_condition()) thro
 
   <footer class="post-footer">
     <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/c&#43;&#43;/">C&#43;&#43;</a></li>
     </ul>
   </footer>
 </article>
     </main>
     
 <footer class="footer">
-        <span>&copy; 2024 <a href="https://kfwu1999.github.io/">kfwu&#39;s blog</a></span> · 
+        <span>&copy; 2024 <a href="http://localhost:1313/">kfwu&#39;s blog</a></span> · 
 
     <span>
         Powered by
