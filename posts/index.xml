@@ -2,32 +2,32 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>Posts on kfwu&#39;s blog</title>
-    <link>http://localhost:1313/posts/</link>
+    <link>https://kfwu1999.github.io/posts/</link>
     <description>Recent content in Posts on kfwu&#39;s blog</description>
     <generator>Hugo -- 0.124.1</generator>
     <language>en-us</language>
     <lastBuildDate>Wed, 04 Sep 2024 00:00:00 +0000</lastBuildDate>
-    <atom:link href="http://localhost:1313/posts/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="https://kfwu1999.github.io/posts/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>C&#43;&#43; 學習筆記 - std::shared_ptr</title>
-      <link>http://localhost:1313/posts/cpp/shared_ptr/</link>
+      <link>https://kfwu1999.github.io/posts/cpp/shared_ptr/</link>
       <pubDate>Wed, 04 Sep 2024 00:00:00 +0000</pubDate>
-      <guid>http://localhost:1313/posts/cpp/shared_ptr/</guid>
+      <guid>https://kfwu1999.github.io/posts/cpp/shared_ptr/</guid>
       <description>TL;DR 在上一篇 std::unique_ptr 的筆記中，已經簡短介紹智能指標的目的及用法。
 在本篇筆記中，會逐步介紹 std::shared_ptr 的基本概念、用法、及簡易實作。
 shared_ptr 簡介 與 unique_ptr 類似，shared_ptr 也是 C++11 中引入的一種智能指標，其目的是為了減少記憶體流失 (Memory Leak) 的風險。
 與 unique_ptr 不同的地方在於，shared_ptr 允許多個 shared_ptr 實例指向同一塊動態記憶體。只有當最後一個 shared_ptr 被銷毀或重置後，該記憶體才會被釋放。
 shared_ptr 會維護一個引用計數 (Reference Counting) 來管理記憶體的所有權。每當一個新的 shared_ptr 被創建或複製時，引用計數會增加；而當一個 shared_ptr 被銷毀或重置時，引用計數會減少。當引用計數歸零時，表示不再有指標指向該記憶體，此時記憶體將被自動釋放。
 引用計數改變的情況 shared_ptr 的引用計數會在創建或被複製時增加，並在銷毀或重置時減少，主要會在以下幾種情況改變：
-建構子 (Constructor) 解構子 (Destructor) 拷貝建構子 (Copy Constructor) 拷貝賦值運算子 (Copy Assignment Operator) 要注意的是，移動建構子 (Move Constructor) 及移動運算子 (Move Assignment Operator) 會有所有權轉移的步驟，所以引用計數並不會改變。
+建構子 (Constructor) 解構子 (Destructor) 拷貝建構子 (Copy Constructor) 拷貝賦值運算子 (Copy Assignment Operator) 要注意的是，移動建構子 (Move Constructor) 及移動運算子 (Move Assignment Operator) 會有所有權轉移的步驟，在轉移後原本的指標會被設定為空指標，所以引用計數並不會改變。
 成員變數與控制區塊 (Control Block) shared_ptr 本身除了指向動態記憶體區塊的指標之外，還有另外一個指標指向一個控制區塊 (Control Block)，如下圖所示。其中控制區塊包含以下內容:
 引用計數 弱引用計數: 此與 std::weak_ptr 有關，這邊先略過，會在後續筆記中做介紹 其他資料: 包含 Deletor 及 Allocator 等 而控制區塊會在以下幾種情況被建立：</description>
     </item>
     <item>
       <title>C&#43;&#43; 學習筆記 - std::unique_ptr</title>
-      <link>http://localhost:1313/posts/cpp/unique_ptr/</link>
+      <link>https://kfwu1999.github.io/posts/cpp/unique_ptr/</link>
       <pubDate>Tue, 03 Sep 2024 00:00:00 +0000</pubDate>
-      <guid>http://localhost:1313/posts/cpp/unique_ptr/</guid>
+      <guid>https://kfwu1999.github.io/posts/cpp/unique_ptr/</guid>
       <description>TL;DR 在 C++ 中，std::unique_ptr 是一種很常用的智能指標 (Smart Pointer)，其主要目的是自動管理動態記憶體，避免記憶體流失 (Memory Leak)。
 在本篇筆記中，我會先由記憶體流失及智能指標 (Smart Pointer) 開始簡介，再逐步介紹 std::unique_ptr 的基本概念、用法、及簡易實作。
 前言 記憶體流失簡介 如果要用一句話簡介記憶體流失 (Memory Leak) 的話，可以說：「當一個程式中分配的動態記憶體，在使用完畢後並未將其釋放，則會造成記憶體流失，減少可使用的主記憶體容量」。
