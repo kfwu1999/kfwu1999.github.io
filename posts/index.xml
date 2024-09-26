@@ -6,8 +6,24 @@
     <description>Recent content in Posts on kfwu&#39;s blog</description>
     <generator>Hugo -- 0.124.1</generator>
     <language>en-us</language>
-    <lastBuildDate>Wed, 04 Sep 2024 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 10 Sep 2024 00:00:00 +0000</lastBuildDate>
     <atom:link href="https://kfwu1999.github.io/posts/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>C&#43;&#43; 學習筆記 - iterator_traits</title>
+      <link>https://kfwu1999.github.io/posts/cpp/iterator_traits/</link>
+      <pubDate>Tue, 10 Sep 2024 00:00:00 +0000</pubDate>
+      <guid>https://kfwu1999.github.io/posts/cpp/iterator_traits/</guid>
+      <description>TL;DR 本篇筆記主要是介紹 C++ 中 STL 函式庫的 iterator_traits。平常用到這個功能的地方應該比較少，但如果需要寫自己的容器並希望它能與 STL 的 &amp;lt;algorithms&amp;gt; 函式庫一起使用的話可能就會需要用到。
+前言: 什麼是迭代器 (Iterator) 簡介 本篇筆記要介紹的重點並不是迭代器，故這邊只做非常簡短的介紹。
+在 STL 中，迭代器對於不同種類的容器中的元素，提供了一種統一的操作方式，包含了遍歷、取值等操作，讓我們能夠在不知道容器內部實作細節的情況下，對容器內部的元素進行操作。
+我們可以將迭代器理解為容器與 STL 種演算法函式庫之間的溝通橋樑：容器不需要知道有哪些演算法，而演算法也不需要知道容器內部的具體實作。
+ref: Back to Basics: Classic STL - Bob Steagall - CppCon 2021
+迭代器分類 迭代器是透過其所能進行的運算進行分類，而其分類方式類似於下圖中的階層結構，在圖中上方的迭代器能夠進行的運算，圖中下方的迭代器也要支援。
+舉例來說，輸入迭代器 (Input Iterator) 支援箭號運算子 (-&amp;gt;)，則圖中除了輸出迭代器 (Output Iterator) 以外的其他迭代器同樣都支援箭號運算子 (-&amp;gt;)。
+這樣的分類方式對於使用迭代器的演算法在實作上有很大的幫助，此筆記後面會做更詳細的介紹。
+而迭代器主要分為以下幾類
+輸入迭代器 (Input Iterator) 讀取，但不寫入; single-pass，僅遞增。 istream_iterator 詳細內容可參考 cppreference: LegacyInputIterator 輸出迭代器 (Output Iterator) 寫入，但不讀取; single-pass，僅遞增。 ostream_iterator 詳細內容可參考 cppreference: LegacyOutputIterator 正向迭代器 (Forward Iterator) 讀取及寫入; multi-pass，僅遞增。 forward_list 詳細內容可參考 cppreference: LegacyForwardIterator 雙向迭代器 (Bidirectional Iterator) 讀取及寫入; multi-pass，可遞增及遞減。 list, set, map 詳細內容可參考 cppreference: LegacyBidirectionalIterator 隨機存取迭代器 (Random-Access Iterator) 讀取及寫入; multi-pass，可隨機存取。 array, vector, deque, string 詳細內容可參考 cppreference: LegacyRandomAccessIterator iterator_traits 簡介 什麼是 iterator_traits iterator_traits 是一個模板結構 (Template struct)，它主要目的是以一種統一的方式，提取迭代器的型別，如值的型別 (value_type)、差值型別 (difference_type)、迭代器分類 (iterator_category) 等。</description>
+    </item>
     <item>
       <title>C&#43;&#43; 學習筆記 - std::shared_ptr</title>
       <link>https://kfwu1999.github.io/posts/cpp/shared_ptr/</link>

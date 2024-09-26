@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>C&#43;&#43; 學習筆記 - iterator_traits | kfwu&#39;s blog</title>
+<meta name="keywords" content="C&#43;&#43;">
+<meta name="description" content="TL;DR 本篇筆記主要是介紹 C&#43;&#43; 中 STL 函式庫的 iterator_traits。平常用到這個功能的地方應該比較少，但如果需要寫自己的容器並希望它能與 STL 的 &lt;algorithms&gt; 函式庫一起使用的話可能就會需要用到。
+前言: 什麼是迭代器 (Iterator) 簡介 本篇筆記要介紹的重點並不是迭代器，故這邊只做非常簡短的介紹。
+在 STL 中，迭代器對於不同種類的容器中的元素，提供了一種統一的操作方式，包含了遍歷、取值等操作，讓我們能夠在不知道容器內部實作細節的情況下，對容器內部的元素進行操作。
+我們可以將迭代器理解為容器與 STL 種演算法函式庫之間的溝通橋樑：容器不需要知道有哪些演算法，而演算法也不需要知道容器內部的具體實作。
+ref: Back to Basics: Classic STL - Bob Steagall - CppCon 2021
+迭代器分類 迭代器是透過其所能進行的運算進行分類，而其分類方式類似於下圖中的階層結構，在圖中上方的迭代器能夠進行的運算，圖中下方的迭代器也要支援。
+舉例來說，輸入迭代器 (Input Iterator) 支援箭號運算子 (-&gt;)，則圖中除了輸出迭代器 (Output Iterator) 以外的其他迭代器同樣都支援箭號運算子 (-&gt;)。
+這樣的分類方式對於使用迭代器的演算法在實作上有很大的幫助，此筆記後面會做更詳細的介紹。
+而迭代器主要分為以下幾類
+輸入迭代器 (Input Iterator) 讀取，但不寫入; single-pass，僅遞增。 istream_iterator 詳細內容可參考 cppreference: LegacyInputIterator 輸出迭代器 (Output Iterator) 寫入，但不讀取; single-pass，僅遞增。 ostream_iterator 詳細內容可參考 cppreference: LegacyOutputIterator 正向迭代器 (Forward Iterator) 讀取及寫入; multi-pass，僅遞增。 forward_list 詳細內容可參考 cppreference: LegacyForwardIterator 雙向迭代器 (Bidirectional Iterator) 讀取及寫入; multi-pass，可遞增及遞減。 list, set, map 詳細內容可參考 cppreference: LegacyBidirectionalIterator 隨機存取迭代器 (Random-Access Iterator) 讀取及寫入; multi-pass，可隨機存取。 array, vector, deque, string 詳細內容可參考 cppreference: LegacyRandomAccessIterator iterator_traits 簡介 什麼是 iterator_traits iterator_traits 是一個模板結構 (Template struct)，它主要目的是以一種統一的方式，提取迭代器的型別，如值的型別 (value_type)、差值型別 (difference_type)、迭代器分類 (iterator_category) 等。">
+<meta name="author" content="">
+<link rel="canonical" href="https://kfwu1999.github.io/posts/cpp/iterator_traits/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.fc220c15db4aef0318bbf30adc45d33d4d7c88deff3238b23eb255afdc472ca6.css" integrity="sha256-/CIMFdtK7wMYu/MK3EXTPU18iN7/MjiyPrJVr9xHLKY=" rel="preload stylesheet" as="style">
+<link rel="icon" href="https://kfwu1999.github.io/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="https://kfwu1999.github.io/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="https://kfwu1999.github.io/favicon-32x32.png">
+<link rel="apple-touch-icon" href="https://kfwu1999.github.io/apple-touch-icon.png">
+<link rel="mask-icon" href="https://kfwu1999.github.io/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="https://kfwu1999.github.io/posts/cpp/iterator_traits/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript><meta property="og:title" content="C&#43;&#43; 學習筆記 - iterator_traits" />
+<meta property="og:description" content="TL;DR 本篇筆記主要是介紹 C&#43;&#43; 中 STL 函式庫的 iterator_traits。平常用到這個功能的地方應該比較少，但如果需要寫自己的容器並希望它能與 STL 的 &lt;algorithms&gt; 函式庫一起使用的話可能就會需要用到。
+前言: 什麼是迭代器 (Iterator) 簡介 本篇筆記要介紹的重點並不是迭代器，故這邊只做非常簡短的介紹。
+在 STL 中，迭代器對於不同種類的容器中的元素，提供了一種統一的操作方式，包含了遍歷、取值等操作，讓我們能夠在不知道容器內部實作細節的情況下，對容器內部的元素進行操作。
+我們可以將迭代器理解為容器與 STL 種演算法函式庫之間的溝通橋樑：容器不需要知道有哪些演算法，而演算法也不需要知道容器內部的具體實作。
+ref: Back to Basics: Classic STL - Bob Steagall - CppCon 2021
+迭代器分類 迭代器是透過其所能進行的運算進行分類，而其分類方式類似於下圖中的階層結構，在圖中上方的迭代器能夠進行的運算，圖中下方的迭代器也要支援。
+舉例來說，輸入迭代器 (Input Iterator) 支援箭號運算子 (-&gt;)，則圖中除了輸出迭代器 (Output Iterator) 以外的其他迭代器同樣都支援箭號運算子 (-&gt;)。
+這樣的分類方式對於使用迭代器的演算法在實作上有很大的幫助，此筆記後面會做更詳細的介紹。
+而迭代器主要分為以下幾類
+輸入迭代器 (Input Iterator) 讀取，但不寫入; single-pass，僅遞增。 istream_iterator 詳細內容可參考 cppreference: LegacyInputIterator 輸出迭代器 (Output Iterator) 寫入，但不讀取; single-pass，僅遞增。 ostream_iterator 詳細內容可參考 cppreference: LegacyOutputIterator 正向迭代器 (Forward Iterator) 讀取及寫入; multi-pass，僅遞增。 forward_list 詳細內容可參考 cppreference: LegacyForwardIterator 雙向迭代器 (Bidirectional Iterator) 讀取及寫入; multi-pass，可遞增及遞減。 list, set, map 詳細內容可參考 cppreference: LegacyBidirectionalIterator 隨機存取迭代器 (Random-Access Iterator) 讀取及寫入; multi-pass，可隨機存取。 array, vector, deque, string 詳細內容可參考 cppreference: LegacyRandomAccessIterator iterator_traits 簡介 什麼是 iterator_traits iterator_traits 是一個模板結構 (Template struct)，它主要目的是以一種統一的方式，提取迭代器的型別，如值的型別 (value_type)、差值型別 (difference_type)、迭代器分類 (iterator_category) 等。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://kfwu1999.github.io/posts/cpp/iterator_traits/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2024-09-10T00:00:00+00:00" />
+<meta property="article:modified_time" content="2024-09-10T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="C&#43;&#43; 學習筆記 - iterator_traits"/>
+<meta name="twitter:description" content="TL;DR 本篇筆記主要是介紹 C&#43;&#43; 中 STL 函式庫的 iterator_traits。平常用到這個功能的地方應該比較少，但如果需要寫自己的容器並希望它能與 STL 的 &lt;algorithms&gt; 函式庫一起使用的話可能就會需要用到。
+前言: 什麼是迭代器 (Iterator) 簡介 本篇筆記要介紹的重點並不是迭代器，故這邊只做非常簡短的介紹。
+在 STL 中，迭代器對於不同種類的容器中的元素，提供了一種統一的操作方式，包含了遍歷、取值等操作，讓我們能夠在不知道容器內部實作細節的情況下，對容器內部的元素進行操作。
+我們可以將迭代器理解為容器與 STL 種演算法函式庫之間的溝通橋樑：容器不需要知道有哪些演算法，而演算法也不需要知道容器內部的具體實作。
+ref: Back to Basics: Classic STL - Bob Steagall - CppCon 2021
+迭代器分類 迭代器是透過其所能進行的運算進行分類，而其分類方式類似於下圖中的階層結構，在圖中上方的迭代器能夠進行的運算，圖中下方的迭代器也要支援。
+舉例來說，輸入迭代器 (Input Iterator) 支援箭號運算子 (-&gt;)，則圖中除了輸出迭代器 (Output Iterator) 以外的其他迭代器同樣都支援箭號運算子 (-&gt;)。
+這樣的分類方式對於使用迭代器的演算法在實作上有很大的幫助，此筆記後面會做更詳細的介紹。
+而迭代器主要分為以下幾類
+輸入迭代器 (Input Iterator) 讀取，但不寫入; single-pass，僅遞增。 istream_iterator 詳細內容可參考 cppreference: LegacyInputIterator 輸出迭代器 (Output Iterator) 寫入，但不讀取; single-pass，僅遞增。 ostream_iterator 詳細內容可參考 cppreference: LegacyOutputIterator 正向迭代器 (Forward Iterator) 讀取及寫入; multi-pass，僅遞增。 forward_list 詳細內容可參考 cppreference: LegacyForwardIterator 雙向迭代器 (Bidirectional Iterator) 讀取及寫入; multi-pass，可遞增及遞減。 list, set, map 詳細內容可參考 cppreference: LegacyBidirectionalIterator 隨機存取迭代器 (Random-Access Iterator) 讀取及寫入; multi-pass，可隨機存取。 array, vector, deque, string 詳細內容可參考 cppreference: LegacyRandomAccessIterator iterator_traits 簡介 什麼是 iterator_traits iterator_traits 是一個模板結構 (Template struct)，它主要目的是以一種統一的方式，提取迭代器的型別，如值的型別 (value_type)、差值型別 (difference_type)、迭代器分類 (iterator_category) 等。"/>
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "https://kfwu1999.github.io/posts/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "C++ 學習筆記 - iterator_traits",
+      "item": "https://kfwu1999.github.io/posts/cpp/iterator_traits/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "C++ 學習筆記 - iterator_traits",
+  "name": "C\u002b\u002b 學習筆記 - iterator_traits",
+  "description": "TL;DR 本篇筆記主要是介紹 C++ 中 STL 函式庫的 iterator_traits。平常用到這個功能的地方應該比較少，但如果需要寫自己的容器並希望它能與 STL 的 \u0026lt;algorithms\u0026gt; 函式庫一起使用的話可能就會需要用到。\n前言: 什麼是迭代器 (Iterator) 簡介 本篇筆記要介紹的重點並不是迭代器，故這邊只做非常簡短的介紹。\n在 STL 中，迭代器對於不同種類的容器中的元素，提供了一種統一的操作方式，包含了遍歷、取值等操作，讓我們能夠在不知道容器內部實作細節的情況下，對容器內部的元素進行操作。\n我們可以將迭代器理解為容器與 STL 種演算法函式庫之間的溝通橋樑：容器不需要知道有哪些演算法，而演算法也不需要知道容器內部的具體實作。\nref: Back to Basics: Classic STL - Bob Steagall - CppCon 2021\n迭代器分類 迭代器是透過其所能進行的運算進行分類，而其分類方式類似於下圖中的階層結構，在圖中上方的迭代器能夠進行的運算，圖中下方的迭代器也要支援。\n舉例來說，輸入迭代器 (Input Iterator) 支援箭號運算子 (-\u0026gt;)，則圖中除了輸出迭代器 (Output Iterator) 以外的其他迭代器同樣都支援箭號運算子 (-\u0026gt;)。\n這樣的分類方式對於使用迭代器的演算法在實作上有很大的幫助，此筆記後面會做更詳細的介紹。\n而迭代器主要分為以下幾類\n輸入迭代器 (Input Iterator) 讀取，但不寫入; single-pass，僅遞增。 istream_iterator 詳細內容可參考 cppreference: LegacyInputIterator 輸出迭代器 (Output Iterator) 寫入，但不讀取; single-pass，僅遞增。 ostream_iterator 詳細內容可參考 cppreference: LegacyOutputIterator 正向迭代器 (Forward Iterator) 讀取及寫入; multi-pass，僅遞增。 forward_list 詳細內容可參考 cppreference: LegacyForwardIterator 雙向迭代器 (Bidirectional Iterator) 讀取及寫入; multi-pass，可遞增及遞減。 list, set, map 詳細內容可參考 cppreference: LegacyBidirectionalIterator 隨機存取迭代器 (Random-Access Iterator) 讀取及寫入; multi-pass，可隨機存取。 array, vector, deque, string 詳細內容可參考 cppreference: LegacyRandomAccessIterator iterator_traits 簡介 什麼是 iterator_traits iterator_traits 是一個模板結構 (Template struct)，它主要目的是以一種統一的方式，提取迭代器的型別，如值的型別 (value_type)、差值型別 (difference_type)、迭代器分類 (iterator_category) 等。",
+  "keywords": [
+    "C++"
+  ],
+  "articleBody": "TL;DR 本篇筆記主要是介紹 C++ 中 STL 函式庫的 iterator_traits。平常用到這個功能的地方應該比較少，但如果需要寫自己的容器並希望它能與 STL 的 函式庫一起使用的話可能就會需要用到。\n前言: 什麼是迭代器 (Iterator) 簡介 本篇筆記要介紹的重點並不是迭代器，故這邊只做非常簡短的介紹。\n在 STL 中，迭代器對於不同種類的容器中的元素，提供了一種統一的操作方式，包含了遍歷、取值等操作，讓我們能夠在不知道容器內部實作細節的情況下，對容器內部的元素進行操作。\n我們可以將迭代器理解為容器與 STL 種演算法函式庫之間的溝通橋樑：容器不需要知道有哪些演算法，而演算法也不需要知道容器內部的具體實作。\nref: Back to Basics: Classic STL - Bob Steagall - CppCon 2021\n迭代器分類 迭代器是透過其所能進行的運算進行分類，而其分類方式類似於下圖中的階層結構，在圖中上方的迭代器能夠進行的運算，圖中下方的迭代器也要支援。\n舉例來說，輸入迭代器 (Input Iterator) 支援箭號運算子 (-\u003e)，則圖中除了輸出迭代器 (Output Iterator) 以外的其他迭代器同樣都支援箭號運算子 (-\u003e)。\n這樣的分類方式對於使用迭代器的演算法在實作上有很大的幫助，此筆記後面會做更詳細的介紹。\n而迭代器主要分為以下幾類\n輸入迭代器 (Input Iterator) 讀取，但不寫入; single-pass，僅遞增。 istream_iterator 詳細內容可參考 cppreference: LegacyInputIterator 輸出迭代器 (Output Iterator) 寫入，但不讀取; single-pass，僅遞增。 ostream_iterator 詳細內容可參考 cppreference: LegacyOutputIterator 正向迭代器 (Forward Iterator) 讀取及寫入; multi-pass，僅遞增。 forward_list 詳細內容可參考 cppreference: LegacyForwardIterator 雙向迭代器 (Bidirectional Iterator) 讀取及寫入; multi-pass，可遞增及遞減。 list, set, map 詳細內容可參考 cppreference: LegacyBidirectionalIterator 隨機存取迭代器 (Random-Access Iterator) 讀取及寫入; multi-pass，可隨機存取。 array, vector, deque, string 詳細內容可參考 cppreference: LegacyRandomAccessIterator iterator_traits 簡介 什麼是 iterator_traits iterator_traits 是一個模板結構 (Template struct)，它主要目的是以一種統一的方式，提取迭代器的型別，如值的型別 (value_type)、差值型別 (difference_type)、迭代器分類 (iterator_category) 等。\n以下是 iterator_traits 的基本定義：\n1 2 3 4 5 6 7 8 template \u003ctypename Iterator\u003e struct iterator_traits { using difference_type = typename Iterator::difference_type; using value_type = typename Iterator::value_type; using pointer = typename Iterator::pointer; using reference = typename Iterator::reference; using iterator_category = typename Iterator::iterator_category; }; 使用 iterator_traits 提取型別資訊 當我們需要使用迭代器所指向的值的型別時，可以使用 iterator_traits 進行提取。以下是一個簡單的範例:\n1 2 3 4 5 template \u003ctypename Iterator\u003e typename iterator_traits\u003cIterator\u003e::value_type get_val(Iterator it) { return *it; } 在這個範例中，我們透過 std::iterator_traits::value_type 取得迭代器所指向的值的型別 (value_type)，並使用 *it 來取得實際的值。\niterator_category 的用途 iterator_category 是 iterator_traits 中的一個重要型別，用於標示迭代器的分類。它讓我們在撰寫迭代器的演算法時，可以針對不同迭代器所支援的運算進行最佳化，例如我們可以利用隨機存取迭代器的特性實作更高效的演算法，這部份在筆記後面的範例中會有更詳細的介紹。\n指標型別的特化 為了讓原生指標（如 int*）也能與 iterator_traits 一起使用，標準庫對指標型別進行了模板特化 (Specialization)。這樣動態記憶體陣列也可使用迭代器相關的演算法。\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 template \u003ctypename Tp\u003e struct iterator_traits\u003cTp*\u003e { using difference_type = std::ptrdiff_t; using value_type = Tp; using pointer = Tp*; using reference = Tp\u0026; using iterator_category = std::random_access_iterator_tag; }; template \u003ctypename Tp\u003e struct iterator_traits\u003cconst Tp*\u003e { using difference_type = std::ptrdiff_t; using value_type = Tp; using pointer = const Tp*; using reference = const Tp\u0026; using iterator_category = std::random_access_iterator_tag; }; iterator_traits 使用範例 std::distance 在這部分，我會透過觀察 llvm 中 std::distance 的原始碼，解釋 iterator_traits 的用法 (source code)。\n下列程式碼為我們所使用的 API:\n1 2 3 4 5 6 7 template \u003cclass _InputIter\u003e inline _LIBCPP_INLINE_VISIBILITY _LIBCPP_CONSTEXPR_SINCE_CXX17 typename iterator_traits\u003c_InputIter\u003e::difference_type distance(_InputIter __first, _InputIter __last) { return _VSTD::__distance(__first, __last, typename iterator_traits\u003c_InputIter\u003e::iterator_category()); } 由模板變數的命名方式 _InputIter 可看出，此函式主要用於輸入迭代器 (Input Iterator)，也就代表除了輸出迭代器以外的迭代器皆可使用。 在函式中，透過 typename iterator_traits\u003c_InputIter\u003e::iterator_category 提取迭代器的類別，並以此為參數呼叫內部的實作函式 __distance。這種方式稱為標籤分派 (Tag Dispatch)，可以根據不同的迭代器類別，呼叫對應的函式實作。 以下程式碼為對於輸入迭代器 (Input Iterator) 的實作:\n1 2 3 4 5 6 7 8 9 10 template \u003cclass _InputIter\u003e inline _LIBCPP_INLINE_VISIBILITY _LIBCPP_CONSTEXPR_SINCE_CXX17 typename iterator_traits\u003c_InputIter\u003e::difference_type __distance(_InputIter __first, _InputIter __last, input_iterator_tag) { typename iterator_traits\u003c_InputIter\u003e::difference_type __r(0); for (; __first != __last; ++__first) ++__r; return __r; } 由於輸入迭代器僅支援單向遞增，我們需要遍歷從 __first 到 __last 的整個範圍，逐一遞增 __r，以計算兩個迭代器之間的距離。 在函式中，input_iterator_tag 只是為了 Tag Dispatch，函式中並不需要使用它，故可忽略其變數名稱。 以下程式碼為對於隨機存取迭代器 (Random-Access Iterator) 的實作:\n1 2 3 4 5 6 7 template \u003cclass _RandIter\u003e inline _LIBCPP_INLINE_VISIBILITY _LIBCPP_CONSTEXPR_SINCE_CXX17 typename iterator_traits\u003c_RandIter\u003e::difference_type __distance(_RandIter __first, _RandIter __last, random_access_iterator_tag) { return __last - __first; } 隨機存取迭代器支援兩個迭代器之間的減法運算，因此我們可以直接透過 __last - __first 計算距離，而不需要遍歷整個範圍。這大大提高了效率。 std::reverse 接下來，我們以 llvm 中的 std::reverse 為例，進一步說明 iterator_traits 的應用 (source code)。\n以下為我們使用的 API:\n1 2 3 4 5 template \u003cclass _BidirectionalIterator\u003e inline _LIBCPP_HIDE_FROM_ABI _LIBCPP_CONSTEXPR_SINCE_CXX20 void reverse(_BidirectionalIterator __first, _BidirectionalIterator __last) { std::__reverse\u003c_ClassicAlgPolicy\u003e(std::move(__first), std::move(__last)); } 以下為其內部的實作函式，與 std::distance 有些不同，std::reverse 多了一層\n1 2 3 4 5 template \u003cclass _AlgPolicy, class _BidirectionalIterator, class _Sentinel\u003e _LIBCPP_HIDE_FROM_ABI _LIBCPP_CONSTEXPR_SINCE_CXX20 void __reverse(_BidirectionalIterator __first, _Sentinel __last) { using _IterCategory = typename _IterOps\u003c_AlgPolicy\u003e::template __iterator_category\u003c_BidirectionalIterator\u003e; std::__reverse_impl\u003c_AlgPolicy\u003e(std::move(__first), std::move(__last), _IterCategory()); } 在此實作細節中，其透過 using _IterCategory = ... 取出 iterator 的 iterator_category。 在內部實作細節 __reverse_impl 中，透過 _IterCategory() 的方式建構一個以 _IterCategory 為型別的變數。 一樣是透過標籤分派 (Tag Dispatch) 的方式，將不同的 iterator_catagory 分配到其對應的實作。 以下程式碼為對於雙向迭代器 (Bidirectional Iterator) 的實作:\n1 2 3 4 5 6 7 8 9 10 11 12 13 template \u003cclass _AlgPolicy, class _BidirectionalIterator\u003e inline _LIBCPP_INLINE_VISIBILITY _LIBCPP_CONSTEXPR_SINCE_CXX20 void __reverse_impl(_BidirectionalIterator __first, _BidirectionalIterator __last, bidirectional_iterator_tag) { while (__first != __last) { if (__first == --__last) break; _IterOps\u003c_AlgPolicy\u003e::iter_swap(__first, __last); ++__first; } } 以下程式碼為對於隨機存取迭代器 (Random-Access Iterator) 的實作:\n1 2 3 4 5 6 7 8 9 template \u003cclass _AlgPolicy, class _RandomAccessIterator\u003e inline _LIBCPP_INLINE_VISIBILITY _LIBCPP_CONSTEXPR_SINCE_CXX20 void __reverse_impl(_RandomAccessIterator __first, _RandomAccessIterator __last, random_access_iterator_tag) { if (__first != __last) for (; __first \u003c --__last; ++__first) _IterOps\u003c_AlgPolicy\u003e::iter_swap(__first, __last); } 當使用不支援雙向操作的迭代器時 (如 forward_list 的正向迭代器)，會產生編譯錯誤，因為沒有針對 std::forward_iterator_tag 的 __reverse_impl 實作:\n1 2 std::forward_list\u003cint\u003e list = {1, 2, 3}; std::reverse(list.begin(), list.end()); 錯誤訊息:\nerror: no matching function for call to '__reverse_impl' 參考資料 C++ Primer, 5ed - Ch10.5 ",
+  "wordCount" : "613",
+  "inLanguage": "en",
+  "datePublished": "2024-09-10T00:00:00Z",
+  "dateModified": "2024-09-10T00:00:00Z",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://kfwu1999.github.io/posts/cpp/iterator_traits/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "kfwu's blog",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://kfwu1999.github.io/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="https://kfwu1999.github.io/" accesskey="h" title="kfwu&#39;s blog (Alt + H)">kfwu&#39;s blog</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="https://kfwu1999.github.io/tags/" title="Tags">
+                    <span>Tags</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="https://kfwu1999.github.io/">Home</a>&nbsp;»&nbsp;<a href="https://kfwu1999.github.io/posts/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      C&#43;&#43; 學習筆記 - iterator_traits
+    </h1>
+    <div class="post-meta"><span title='2024-09-10 00:00:00 +0000 UTC'>2024.09.10</span>&nbsp;·&nbsp;3 min
+
+</div>
+  </header> <div class="toc">
+    <details >
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">Table of Contents</span>
+        </summary>
+
+        <div class="inner"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#tldr">TL;DR</a></li>
+    <li><a href="#前言-什麼是迭代器-iterator">前言: 什麼是迭代器 (Iterator)</a>
+      <ul>
+        <li><a href="#簡介">簡介</a></li>
+        <li><a href="#迭代器分類">迭代器分類</a></li>
+      </ul>
+    </li>
+    <li><a href="#iterator_traits-簡介">iterator_traits 簡介</a>
+      <ul>
+        <li><a href="#什麼是-iterator_traits">什麼是 iterator_traits</a></li>
+        <li><a href="#使用-iterator_traits-提取型別資訊">使用 iterator_traits 提取型別資訊</a></li>
+        <li><a href="#iterator_category-的用途">iterator_category 的用途</a></li>
+        <li><a href="#指標型別的特化">指標型別的特化</a></li>
+      </ul>
+    </li>
+    <li><a href="#iterator_traits-使用範例">iterator_traits 使用範例</a>
+      <ul>
+        <li><a href="#stddistance">std::distance</a></li>
+        <li><a href="#stdreverse">std::reverse</a></li>
+      </ul>
+    </li>
+    <li><a href="#參考資料">參考資料</a></li>
+  </ul>
+</nav>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><h2 id="tldr">TL;DR<a hidden class="anchor" aria-hidden="true" href="#tldr">#</a></h2>
+<p>本篇筆記主要是介紹 C++ 中 STL 函式庫的 iterator_traits。平常用到這個功能的地方應該比較少，但如果需要寫自己的容器並希望它能與 STL 的 <code>&lt;algorithms&gt;</code> 函式庫一起使用的話可能就會需要用到。</p>
+<h2 id="前言-什麼是迭代器-iterator">前言: 什麼是迭代器 (Iterator)<a hidden class="anchor" aria-hidden="true" href="#前言-什麼是迭代器-iterator">#</a></h2>
+<h3 id="簡介">簡介<a hidden class="anchor" aria-hidden="true" href="#簡介">#</a></h3>
+<p>本篇筆記要介紹的重點並不是迭代器，故這邊只做非常簡短的介紹。</p>
+<p>在 STL 中，迭代器對於不同種類的容器中的元素，提供了一種統一的操作方式，包含了遍歷、取值等操作，讓我們能夠在不知道容器內部實作細節的情況下，對容器內部的元素進行操作。</p>
+<p>我們可以將迭代器理解為容器與 STL 種演算法函式庫之間的溝通橋樑：容器不需要知道有哪些演算法，而演算法也不需要知道容器內部的具體實作。</p>
+<p><img loading="lazy" src="/images/cpp/fig_container_iterator_algorithm.png" alt="Iterator brief"  />
+</p>
+<blockquote>
+<p>ref: <a href="https://youtu.be/tXUXl_RzkAk?si=fzVVyAd9QWtW752W&amp;t=812">Back to Basics: Classic STL - Bob Steagall - CppCon 2021</a></p>
+</blockquote>
+<h3 id="迭代器分類">迭代器分類<a hidden class="anchor" aria-hidden="true" href="#迭代器分類">#</a></h3>
+<p>迭代器是透過其所能進行的運算進行分類，而其分類方式類似於下圖中的階層結構，在圖中上方的迭代器能夠進行的運算，圖中下方的迭代器也要支援。</p>
+<p>舉例來說，輸入迭代器 (Input Iterator) 支援箭號運算子 (<code>-&gt;</code>)，則圖中除了輸出迭代器 (Output Iterator) 以外的其他迭代器同樣都支援箭號運算子 (<code>-&gt;</code>)。</p>
+<p>這樣的分類方式對於使用迭代器的演算法在實作上有很大的幫助，此筆記後面會做更詳細的介紹。</p>
+<p><img loading="lazy" src="/images/cpp/fig_iterator_catagories.png" alt="Iterator Categories"  />
+</p>
+<p>而迭代器主要分為以下幾類</p>
+<h4 id="輸入迭代器-input-iterator">輸入迭代器 (Input Iterator)<a hidden class="anchor" aria-hidden="true" href="#輸入迭代器-input-iterator">#</a></h4>
+<ul>
+<li>讀取，但不寫入; single-pass，僅遞增。</li>
+<li><code>istream_iterator</code></li>
+<li>詳細內容可參考 <a href="https://en.cppreference.com/w/cpp/named_req/InputIterator">cppreference: LegacyInputIterator</a></li>
+</ul>
+<h4 id="輸出迭代器-output-iterator">輸出迭代器 (Output Iterator)<a hidden class="anchor" aria-hidden="true" href="#輸出迭代器-output-iterator">#</a></h4>
+<ul>
+<li>寫入，但不讀取; single-pass，僅遞增。</li>
+<li><code>ostream_iterator</code></li>
+<li>詳細內容可參考 <a href="https://en.cppreference.com/w/cpp/named_req/OutputIterator">cppreference: LegacyOutputIterator</a></li>
+</ul>
+<h4 id="正向迭代器-forward-iterator">正向迭代器 (Forward Iterator)<a hidden class="anchor" aria-hidden="true" href="#正向迭代器-forward-iterator">#</a></h4>
+<ul>
+<li>讀取及寫入; multi-pass，僅遞增。</li>
+<li><code>forward_list</code></li>
+<li>詳細內容可參考 <a href="https://en.cppreference.com/w/cpp/named_req/ForwardIterator">cppreference: LegacyForwardIterator</a></li>
+</ul>
+<h4 id="雙向迭代器-bidirectional-iterator">雙向迭代器 (Bidirectional Iterator)<a hidden class="anchor" aria-hidden="true" href="#雙向迭代器-bidirectional-iterator">#</a></h4>
+<ul>
+<li>讀取及寫入; multi-pass，可遞增及遞減。</li>
+<li><code>list</code>, <code>set</code>, <code>map</code></li>
+<li>詳細內容可參考 <a href="https://en.cppreference.com/w/cpp/named_req/BidirectionalIterator">cppreference: LegacyBidirectionalIterator</a></li>
+</ul>
+<h4 id="隨機存取迭代器-random-access-iterator">隨機存取迭代器 (Random-Access Iterator)<a hidden class="anchor" aria-hidden="true" href="#隨機存取迭代器-random-access-iterator">#</a></h4>
+<ul>
+<li>讀取及寫入; multi-pass，可隨機存取。</li>
+<li><code>array</code>, <code>vector</code>, <code>deque</code>, <code>string</code></li>
+<li>詳細內容可參考 <a href="https://en.cppreference.com/w/cpp/named_req/RandomAccessIterator">cppreference: LegacyRandomAccessIterator</a></li>
+</ul>
+<h2 id="iterator_traits-簡介">iterator_traits 簡介<a hidden class="anchor" aria-hidden="true" href="#iterator_traits-簡介">#</a></h2>
+<h3 id="什麼是-iterator_traits">什麼是 iterator_traits<a hidden class="anchor" aria-hidden="true" href="#什麼是-iterator_traits">#</a></h3>
+<p>iterator_traits 是一個模板結構 (Template struct)，它主要目的是以一種統一的方式，提取迭代器的型別，如值的型別 (<code>value_type</code>)、差值型別 (<code>difference_type</code>)、迭代器分類 (<code>iterator_category</code>) 等。</p>
+<p>以下是 iterator_traits 的基本定義：</p>
+<div class="highlight"><div style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">8
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#ca9ee6">template</span> <span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#ca9ee6">typename</span> Iterator<span style="color:#99d1db;font-weight:bold">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#ca9ee6">struct</span> <span style="color:#e5c890">iterator_traits</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">using</span> difference_type   <span style="color:#99d1db;font-weight:bold">=</span> <span style="color:#ca9ee6">typename</span> Iterator<span style="color:#99d1db;font-weight:bold">::</span>difference_type;
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">using</span> value_type        <span style="color:#99d1db;font-weight:bold">=</span> <span style="color:#ca9ee6">typename</span> Iterator<span style="color:#99d1db;font-weight:bold">::</span>value_type;
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">using</span> pointer           <span style="color:#99d1db;font-weight:bold">=</span> <span style="color:#ca9ee6">typename</span> Iterator<span style="color:#99d1db;font-weight:bold">::</span>pointer;
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">using</span> reference         <span style="color:#99d1db;font-weight:bold">=</span> <span style="color:#ca9ee6">typename</span> Iterator<span style="color:#99d1db;font-weight:bold">::</span>reference;
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">using</span> iterator_category <span style="color:#99d1db;font-weight:bold">=</span> <span style="color:#ca9ee6">typename</span> Iterator<span style="color:#99d1db;font-weight:bold">::</span>iterator_category;
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="使用-iterator_traits-提取型別資訊">使用 iterator_traits 提取型別資訊<a hidden class="anchor" aria-hidden="true" href="#使用-iterator_traits-提取型別資訊">#</a></h3>
+<p>當我們需要使用迭代器所指向的值的型別時，可以使用 iterator_traits 進行提取。以下是一個簡單的範例:</p>
+<div class="highlight"><div style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#ca9ee6">template</span> <span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#ca9ee6">typename</span> Iterator<span style="color:#99d1db;font-weight:bold">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#ca9ee6">typename</span> iterator_traits<span style="color:#99d1db;font-weight:bold">&lt;</span>Iterator<span style="color:#99d1db;font-weight:bold">&gt;::</span>value_type 
+</span></span><span style="display:flex;"><span>get_val(Iterator it) {
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">return</span> <span style="color:#99d1db;font-weight:bold">*</span>it;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>在這個範例中，我們透過 <code>std::iterator_traits&lt;Iterator&gt;::value_type</code> 取得迭代器所指向的值的型別 (value_type)，並使用 <code>*it</code> 來取得實際的值。</p>
+<h3 id="iterator_category-的用途">iterator_category 的用途<a hidden class="anchor" aria-hidden="true" href="#iterator_category-的用途">#</a></h3>
+<p><code>iterator_category</code> 是 iterator_traits 中的一個重要型別，用於標示迭代器的分類。它讓我們在撰寫迭代器的演算法時，可以針對不同迭代器所支援的運算進行最佳化，例如我們可以利用隨機存取迭代器的特性實作更高效的演算法，這部份在筆記後面的範例中會有更詳細的介紹。</p>
+<h3 id="指標型別的特化">指標型別的特化<a hidden class="anchor" aria-hidden="true" href="#指標型別的特化">#</a></h3>
+<p>為了讓原生指標（如 <code>int*</code>）也能與 iterator_traits 一起使用，標準庫對指標型別進行了模板特化 (Specialization)。這樣動態記憶體陣列也可使用迭代器相關的演算法。</p>
+<div class="highlight"><div style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">17
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#ca9ee6">template</span> <span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#ca9ee6">typename</span> Tp<span style="color:#99d1db;font-weight:bold">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#ca9ee6">struct</span> <span style="color:#e5c890">iterator_traits</span><span style="color:#99d1db;font-weight:bold">&lt;</span>Tp<span style="color:#99d1db;font-weight:bold">*&gt;</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">using</span> difference_type   <span style="color:#99d1db;font-weight:bold">=</span> std<span style="color:#99d1db;font-weight:bold">::</span>ptrdiff_t;
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">using</span> value_type        <span style="color:#99d1db;font-weight:bold">=</span> Tp;
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">using</span> pointer           <span style="color:#99d1db;font-weight:bold">=</span> Tp<span style="color:#99d1db;font-weight:bold">*</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">using</span> reference         <span style="color:#99d1db;font-weight:bold">=</span> Tp<span style="color:#99d1db;font-weight:bold">&amp;</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">using</span> iterator_category <span style="color:#99d1db;font-weight:bold">=</span> std<span style="color:#99d1db;font-weight:bold">::</span>random_access_iterator_tag;
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ca9ee6">template</span> <span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#ca9ee6">typename</span> Tp<span style="color:#99d1db;font-weight:bold">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#ca9ee6">struct</span> <span style="color:#e5c890">iterator_traits</span><span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#ca9ee6">const</span> Tp<span style="color:#99d1db;font-weight:bold">*&gt;</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">using</span> difference_type   <span style="color:#99d1db;font-weight:bold">=</span> std<span style="color:#99d1db;font-weight:bold">::</span>ptrdiff_t;
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">using</span> value_type        <span style="color:#99d1db;font-weight:bold">=</span> Tp;
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">using</span> pointer           <span style="color:#99d1db;font-weight:bold">=</span> <span style="color:#ca9ee6">const</span> Tp<span style="color:#99d1db;font-weight:bold">*</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">using</span> reference         <span style="color:#99d1db;font-weight:bold">=</span> <span style="color:#ca9ee6">const</span> Tp<span style="color:#99d1db;font-weight:bold">&amp;</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">using</span> iterator_category <span style="color:#99d1db;font-weight:bold">=</span> std<span style="color:#99d1db;font-weight:bold">::</span>random_access_iterator_tag;
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="iterator_traits-使用範例">iterator_traits 使用範例<a hidden class="anchor" aria-hidden="true" href="#iterator_traits-使用範例">#</a></h2>
+<h3 id="stddistance">std::distance<a hidden class="anchor" aria-hidden="true" href="#stddistance">#</a></h3>
+<p>在這部分，我會透過觀察 llvm 中 <code>std::distance</code> 的原始碼，解釋 iterator_traits 的用法 (<a href="https://github.com/llvm/llvm-project/blob/main/libcxx/include/__iterator/distance.h">source code</a>)。</p>
+<p>下列程式碼為我們所使用的 API:</p>
+<div class="highlight"><div style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">7
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#ca9ee6">template</span> <span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#ca9ee6">class</span> <span style="color:#e5c890">_InputIter</span><span style="color:#99d1db;font-weight:bold">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#ca9ee6">inline</span> _LIBCPP_INLINE_VISIBILITY _LIBCPP_CONSTEXPR_SINCE_CXX17
+</span></span><span style="display:flex;"><span><span style="color:#ca9ee6">typename</span> iterator_traits<span style="color:#99d1db;font-weight:bold">&lt;</span>_InputIter<span style="color:#99d1db;font-weight:bold">&gt;::</span>difference_type
+</span></span><span style="display:flex;"><span>distance(_InputIter __first, _InputIter __last)
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">return</span> _VSTD<span style="color:#99d1db;font-weight:bold">::</span>__distance(__first, __last, <span style="color:#ca9ee6">typename</span> iterator_traits<span style="color:#99d1db;font-weight:bold">&lt;</span>_InputIter<span style="color:#99d1db;font-weight:bold">&gt;::</span>iterator_category());
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>由模板變數的命名方式 <code>_InputIter</code> 可看出，此函式主要用於輸入迭代器 (Input Iterator)，也就代表除了輸出迭代器以外的迭代器皆可使用。</li>
+<li>在函式中，透過 <code>typename iterator_traits&lt;_InputIter&gt;::iterator_category</code> 提取迭代器的類別，並以此為參數呼叫內部的實作函式 <code>__distance</code>。這種方式稱為標籤分派 (Tag Dispatch)，可以根據不同的迭代器類別，呼叫對應的函式實作。</li>
+</ul>
+<p>以下程式碼為對於輸入迭代器 (Input Iterator) 的實作:</p>
+<div class="highlight"><div style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">10
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#ca9ee6">template</span> <span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#ca9ee6">class</span> <span style="color:#e5c890">_InputIter</span><span style="color:#99d1db;font-weight:bold">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#ca9ee6">inline</span> _LIBCPP_INLINE_VISIBILITY _LIBCPP_CONSTEXPR_SINCE_CXX17
+</span></span><span style="display:flex;"><span><span style="color:#ca9ee6">typename</span> iterator_traits<span style="color:#99d1db;font-weight:bold">&lt;</span>_InputIter<span style="color:#99d1db;font-weight:bold">&gt;::</span>difference_type
+</span></span><span style="display:flex;"><span>__distance(_InputIter __first, _InputIter __last, input_iterator_tag)
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">typename</span> iterator_traits<span style="color:#99d1db;font-weight:bold">&lt;</span>_InputIter<span style="color:#99d1db;font-weight:bold">&gt;::</span>difference_type __r(<span style="color:#ef9f76">0</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">for</span> (; __first <span style="color:#99d1db;font-weight:bold">!=</span> __last; <span style="color:#99d1db;font-weight:bold">++</span>__first)
+</span></span><span style="display:flex;"><span>        <span style="color:#99d1db;font-weight:bold">++</span>__r;
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">return</span> __r;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>由於輸入迭代器僅支援單向遞增，我們需要遍歷從 <code>__first</code> 到 <code>__last</code> 的整個範圍，逐一遞增 <code>__r</code>，以計算兩個迭代器之間的距離。</li>
+<li>在函式中，<code>input_iterator_tag</code> 只是為了 Tag Dispatch，函式中並不需要使用它，故可忽略其變數名稱。</li>
+</ul>
+<p>以下程式碼為對於隨機存取迭代器 (Random-Access Iterator) 的實作:</p>
+<div class="highlight"><div style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">7
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#ca9ee6">template</span> <span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#ca9ee6">class</span> <span style="color:#e5c890">_RandIter</span><span style="color:#99d1db;font-weight:bold">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#ca9ee6">inline</span> _LIBCPP_INLINE_VISIBILITY _LIBCPP_CONSTEXPR_SINCE_CXX17
+</span></span><span style="display:flex;"><span><span style="color:#ca9ee6">typename</span> iterator_traits<span style="color:#99d1db;font-weight:bold">&lt;</span>_RandIter<span style="color:#99d1db;font-weight:bold">&gt;::</span>difference_type
+</span></span><span style="display:flex;"><span>__distance(_RandIter __first, _RandIter __last, random_access_iterator_tag)
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">return</span> __last <span style="color:#99d1db;font-weight:bold">-</span> __first;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>隨機存取迭代器支援兩個迭代器之間的減法運算，因此我們可以直接透過 <code>__last - __first</code> 計算距離，而不需要遍歷整個範圍。這大大提高了效率。</li>
+</ul>
+<h3 id="stdreverse">std::reverse<a hidden class="anchor" aria-hidden="true" href="#stdreverse">#</a></h3>
+<p>接下來，我們以 llvm 中的 <code>std::reverse</code> 為例，進一步說明 iterator_traits 的應用 (<a href="https://github.com/llvm/llvm-project/blob/main/libcxx/include/__algorithm/reverse.h">source code</a>)。</p>
+<p>以下為我們使用的 API:</p>
+<div class="highlight"><div style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#ca9ee6">template</span> <span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#ca9ee6">class</span> <span style="color:#e5c890">_BidirectionalIterator</span><span style="color:#99d1db;font-weight:bold">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#ca9ee6">inline</span> _LIBCPP_HIDE_FROM_ABI _LIBCPP_CONSTEXPR_SINCE_CXX20 <span style="color:#e78284">void</span>
+</span></span><span style="display:flex;"><span>reverse(_BidirectionalIterator __first, _BidirectionalIterator __last) {
+</span></span><span style="display:flex;"><span>    std<span style="color:#99d1db;font-weight:bold">::</span>__reverse<span style="color:#99d1db;font-weight:bold">&lt;</span>_ClassicAlgPolicy<span style="color:#99d1db;font-weight:bold">&gt;</span>(std<span style="color:#99d1db;font-weight:bold">::</span>move(__first), std<span style="color:#99d1db;font-weight:bold">::</span>move(__last));
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>以下為其內部的實作函式，與 <code>std::distance</code> 有些不同，<code>std::reverse</code> 多了一層</p>
+<div class="highlight"><div style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#ca9ee6">template</span> <span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#ca9ee6">class</span> <span style="color:#e5c890">_AlgPolicy</span>, <span style="color:#ca9ee6">class</span> <span style="color:#e5c890">_BidirectionalIterator</span>, <span style="color:#ca9ee6">class</span> <span style="color:#e5c890">_Sentinel</span><span style="color:#99d1db;font-weight:bold">&gt;</span>
+</span></span><span style="display:flex;"><span>_LIBCPP_HIDE_FROM_ABI _LIBCPP_CONSTEXPR_SINCE_CXX20 <span style="color:#e78284">void</span> __reverse(_BidirectionalIterator __first, _Sentinel __last) {
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">using</span> _IterCategory <span style="color:#99d1db;font-weight:bold">=</span> <span style="color:#ca9ee6">typename</span> _IterOps<span style="color:#99d1db;font-weight:bold">&lt;</span>_AlgPolicy<span style="color:#99d1db;font-weight:bold">&gt;::</span><span style="color:#ca9ee6">template</span> __iterator_category<span style="color:#99d1db;font-weight:bold">&lt;</span>_BidirectionalIterator<span style="color:#99d1db;font-weight:bold">&gt;</span>;
+</span></span><span style="display:flex;"><span>    std<span style="color:#99d1db;font-weight:bold">::</span>__reverse_impl<span style="color:#99d1db;font-weight:bold">&lt;</span>_AlgPolicy<span style="color:#99d1db;font-weight:bold">&gt;</span>(std<span style="color:#99d1db;font-weight:bold">::</span>move(__first), std<span style="color:#99d1db;font-weight:bold">::</span>move(__last), _IterCategory());
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>在此實作細節中，其透過 <code>using _IterCategory = ...</code> 取出 iterator 的 <code>iterator_category</code>。</li>
+<li>在內部實作細節 <code>__reverse_impl</code> 中，透過 <code>_IterCategory()</code> 的方式建構一個以 <code>_IterCategory</code> 為型別的變數。</li>
+<li>一樣是透過標籤分派 (Tag Dispatch) 的方式，將不同的 <code>iterator_catagory</code> 分配到其對應的實作。</li>
+</ul>
+<p>以下程式碼為對於雙向迭代器 (Bidirectional Iterator) 的實作:</p>
+<div class="highlight"><div style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">13
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#ca9ee6">template</span> <span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#ca9ee6">class</span> <span style="color:#e5c890">_AlgPolicy</span>, <span style="color:#ca9ee6">class</span> <span style="color:#e5c890">_BidirectionalIterator</span><span style="color:#99d1db;font-weight:bold">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#ca9ee6">inline</span> _LIBCPP_INLINE_VISIBILITY _LIBCPP_CONSTEXPR_SINCE_CXX20
+</span></span><span style="display:flex;"><span><span style="color:#e78284">void</span>
+</span></span><span style="display:flex;"><span>__reverse_impl(_BidirectionalIterator __first, _BidirectionalIterator __last, bidirectional_iterator_tag)
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">while</span> (__first <span style="color:#99d1db;font-weight:bold">!=</span> __last)
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>        <span style="color:#ca9ee6">if</span> (__first <span style="color:#99d1db;font-weight:bold">==</span> <span style="color:#99d1db;font-weight:bold">--</span>__last)
+</span></span><span style="display:flex;"><span>            <span style="color:#ca9ee6">break</span>;
+</span></span><span style="display:flex;"><span>        _IterOps<span style="color:#99d1db;font-weight:bold">&lt;</span>_AlgPolicy<span style="color:#99d1db;font-weight:bold">&gt;::</span>iter_swap(__first, __last);
+</span></span><span style="display:flex;"><span>        <span style="color:#99d1db;font-weight:bold">++</span>__first;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>以下程式碼為對於隨機存取迭代器 (Random-Access Iterator) 的實作:</p>
+<div class="highlight"><div style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">9
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#ca9ee6">template</span> <span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#ca9ee6">class</span> <span style="color:#e5c890">_AlgPolicy</span>, <span style="color:#ca9ee6">class</span> <span style="color:#e5c890">_RandomAccessIterator</span><span style="color:#99d1db;font-weight:bold">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#ca9ee6">inline</span> _LIBCPP_INLINE_VISIBILITY _LIBCPP_CONSTEXPR_SINCE_CXX20
+</span></span><span style="display:flex;"><span><span style="color:#e78284">void</span>
+</span></span><span style="display:flex;"><span>__reverse_impl(_RandomAccessIterator __first, _RandomAccessIterator __last, random_access_iterator_tag)
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#ca9ee6">if</span> (__first <span style="color:#99d1db;font-weight:bold">!=</span> __last)
+</span></span><span style="display:flex;"><span>        <span style="color:#ca9ee6">for</span> (; __first <span style="color:#99d1db;font-weight:bold">&lt;</span> <span style="color:#99d1db;font-weight:bold">--</span>__last; <span style="color:#99d1db;font-weight:bold">++</span>__first)
+</span></span><span style="display:flex;"><span>            _IterOps<span style="color:#99d1db;font-weight:bold">&lt;</span>_AlgPolicy<span style="color:#99d1db;font-weight:bold">&gt;::</span>iter_swap(__first, __last);
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>當使用不支援雙向操作的迭代器時 (如 <code>forward_list</code> 的正向迭代器)，會產生編譯錯誤，因為沒有針對 <code>std::forward_iterator_tag</code> 的 <code>__reverse_impl</code> 實作:</p>
+<div class="highlight"><div style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#838ba7">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#c6d0f5;background-color:#303446;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span>std<span style="color:#99d1db;font-weight:bold">::</span>forward_list<span style="color:#99d1db;font-weight:bold">&lt;</span><span style="color:#e78284">int</span><span style="color:#99d1db;font-weight:bold">&gt;</span> list <span style="color:#99d1db;font-weight:bold">=</span> {<span style="color:#ef9f76">1</span>, <span style="color:#ef9f76">2</span>, <span style="color:#ef9f76">3</span>};
+</span></span><span style="display:flex;"><span>std<span style="color:#99d1db;font-weight:bold">::</span>reverse(list.begin(), list.end());
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>錯誤訊息:</p>
+<pre tabindex="0"><code>error: no matching function for call to &#39;__reverse_impl&#39;
+</code></pre><h2 id="參考資料">參考資料<a hidden class="anchor" aria-hidden="true" href="#參考資料">#</a></h2>
+<ul>
+<li><a href="https://www.amazon.com/Primer-5th-Stanley-B-Lippman/dp/0321714113">C++ Primer, 5ed</a> - Ch10.5</li>
+</ul>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="https://kfwu1999.github.io/tags/c&#43;&#43;/">C&#43;&#43;</a></li>
+    </ul>
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2024 <a href="https://kfwu1999.github.io/">kfwu&#39;s blog</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>
